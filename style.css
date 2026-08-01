@@ -1,0 +1,137 @@
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+
+    background:#111827;
+
+    color:white;
+
+    font-family:Arial, Helvetica, sans-serif;
+
+}
+
+.contenedor{
+
+    width:90%;
+
+    max-width:1100px;
+
+    margin:50px auto;
+
+}
+
+h1{
+
+    text-align:center;
+
+    margin-bottom:10px;
+
+}
+
+.subtitulo{
+
+    text-align:center;
+
+    margin-bottom:40px;
+
+    color:#9CA3AF;
+
+}
+
+.tarjeta{
+
+    background:#1F2937;
+
+    border-radius:18px;
+
+    padding:35px;
+
+    margin-bottom:35px;
+
+    box-shadow:0 10px 25px rgba(0,0,0,.35);
+
+}
+
+.tarjeta h2{
+
+    margin-bottom:20px;
+
+    color:white;
+
+    font-size:34px;
+
+}
+
+.tarjeta h3{
+
+    margin-top:15px;
+
+    margin-bottom:20px;
+
+    color:#00ff99;
+
+    font-size:52px;
+
+}
+
+.cambio{
+
+    margin-top:15px;
+
+    margin-bottom:15px;
+
+    font-size:24px;
+
+    font-weight:bold;
+
+}
+
+.hora{
+
+    margin-top:15px;
+
+    color:#9ca3af;
+
+    font-size:16px;
+
+}
+
+.estadoAPI{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    background:#111827;
+
+    padding:18px;
+
+    border-radius:12px;
+
+    margin-bottom:35px;
+
+    color:white;
+
+    font-size:18px;
+
+    font-weight:bold;
+
+}
+
+#estadoConexion{
+
+    color:#00ff99;
+
+}
+
+#horaSistema{
+
+    color:#9CA3AF;
+
+}
