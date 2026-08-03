@@ -135,3 +135,155 @@ h1{
     color:#9CA3AF;
 
 }
+
+/* ===== Diseño Profesional v2 ===== */
+
+.cabeceraTarjeta{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    margin-bottom:25px;
+
+}
+
+.estadoMoneda{
+
+    background:#0f5132;
+
+    color:#7dffb5;
+
+    padding:6px 12px;
+
+    border-radius:20px;
+
+    font-size:14px;
+
+    font-weight:bold;
+
+}
+
+.precio{
+
+    font-size:52px;
+
+    font-weight:bold;
+
+    margin-bottom:18px;
+
+    color:white;
+
+}
+
+.cambio{
+
+    font-size:28px;
+
+    font-weight:bold;
+
+    margin-bottom:12px;
+
+}
+
+.hora{
+
+    color:#9ca3af;
+
+    font-size:16px;
+
+}
+
+.grafica{
+
+    width:100%;
+
+    height:500px;
+
+    margin-top:30px;
+
+    border-radius:20px;
+
+    overflow:hidden;
+
+    background:#111827;
+
+}
+
+.btnPeriodo{
+
+    background:#1F2937;
+
+    color:white;
+
+    border:1px solid #374151;
+
+    padding:8px 14px;
+
+    margin-right:6px;
+
+    border-radius:8px;
+
+    cursor:pointer;
+
+    transition:0.25s;
+
+}
+
+.btnPeriodo:hover{
+
+    background:#374151;
+
+}
+
+.btnPeriodo.activo{
+
+    background:#FFD700;
+
+    color:#111827;
+
+    font-weight:bold;
+
+    border:1px solid #FFD700;
+
+}
+
+.infoVela{
+
+    display:flex;
+
+    gap:18px;
+
+    flex-wrap:wrap;
+
+    background:#1F2937;
+
+    color:white;
+
+    padding:12px 18px;
+
+    border-radius:10px;
+
+    margin-bottom:12px;
+
+    font-size:14px;
+
+    font-weight:bold;
+
+    border:1px solid #2F3B52;
+
+}
+
+.panelIndicador{
+
+    width:100%;
+
+    height:180px;
+
+    margin-top:10px;
+
+    border-radius:8px;
+
+}

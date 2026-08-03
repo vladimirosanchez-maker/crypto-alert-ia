@@ -32,39 +32,122 @@
 
     <span id="horaSistema">
 
-        --
-
     </span>
 
 </div>
 
 <div id="btc" class="tarjeta">
 
-    <h2>Bitcoin</h2>
+    <div class="cabeceraTarjeta">
 
-    <h3 id="precioBTC">Cargando...</h3>
+        <h2>₿ Bitcoin</h2>
 
-    <p id="cambioBTC">...</p>
+        <span class="estadoMoneda">🟢 En línea</span>
 
-    <p id="horaBTC"></p>
+    </div>
+
+    <h3 id="precioBTC" class="precio">Cargando...</h3>
+
+    <p id="cambioBTC" class="cambio"></p>
+
+    <p id="horaBTC" class="hora"></p>
+
+    <p id="emaBTC">EMA 200: --</p>
 
 </div>
 
 <div id="eth" class="tarjeta">
 
-    <h2>Ethereum</h2>
+    <div class="cabeceraTarjeta">
 
-    <h3 id="precioETH">Cargando...</h3>
+        <h2>♦ Ethereum</h2>
 
-    <p id="cambioETH">...</p>
+        <span class="estadoMoneda">🟢 En línea</span>
 
-    <p id="horaETH"></p>
+    </div>
+    
+    <h3 id="precioETH" class="precio">Cargando...</h3>
+
+    <p id="cambioETH" class="cambio"></p>
+
+    <p id="horaETH" class="hora"></p>
+
+    <p id="emaETH">EMA 200: --</p>
 
 </div>
 
+
+<div id="panelIA" class="panelIA">
+
+    <h3>🤖 Motor IA</h3>
+
+    <p id="estadoIA">Analizando...</p>
+
+    <p id="scoreIA"></p>
+
+</div>
+
+<div class="barraTemporalidades">
+
+    <button class="btnPeriodo" data-periodo="1m">1m</button>
+
+    <button class="btnPeriodo" data-periodo="5m">5m</button>
+
+    <button class="btnPeriodo" data-periodo="15m">15m</button>
+
+    <button class="btnPeriodo" data-periodo="1h">1H</button>
+
+    <button class="btnPeriodo" data-periodo="4h">4H</button>
+
+    <button class="btnPeriodo" data-periodo="1d">1D</button>
+
+    <button class="btnPeriodo" data-periodo="1w">1W</button>
+
+</div>
+
+<div id="infoVela" class="infoVela">
+
+    <span id="infoFecha">Fecha: --</span>
+
+    <span id="infoHora">Hora: --</span>
+
+    <span id="contadorVela">⏳ --:--</span>
+
+    <span id="infoOpen">O: --</span>
+
+    <span id="infoHigh">H: --</span>
+
+    <span id="infoLow">L: --</span>
+
+    <span id="infoClose">C: --</span>
+
+</div>
+
+<div id="graficaBTC" class="grafica"></div>
+
+<div id="panelVolumen" class="panelIndicador"></div>
+
+<div id="panelADX" class="panelIndicador"></div>
+
     </div>
 
-<script src="app.js"></script>
+<script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
+
+<script src="js/config.js"></script>
+
+<script src="js/api.js"></script>
+
+<script src="js/dashboard.js"></script>
+
+<script src="js/charts/ema.js"></script>
+
+<script src="js/charts/volumen.js"></script>
+
+<script src="js/charts/adx.js"></script>
+
+<script src="js/ia/analizador.js"></script>
+
+<script src="js/charts/grafica.js"></script>
 
 </body>
 
