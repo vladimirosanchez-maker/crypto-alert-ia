@@ -360,6 +360,19 @@ function activarRedimensionadores() {
   });
 }
 
+function activarControlesAlturaIndicadores() {
+  document.querySelectorAll("[data-ajustar-indicador]").forEach((boton) => {
+    boton.addEventListener("click", () => {
+      if (indicadorExpandido) return;
+      const indicador = boton.dataset.ajustarIndicador;
+      const ajuste = Number(boton.dataset.ajuste);
+      alturasIndicadores[indicador] = Math.min(500, Math.max(110, alturasIndicadores[indicador] + ajuste));
+      redimensionarGraficas();
+      guardarVista();
+    });
+  });
+}
+
 function alternarIndicadorExpandido(indicador) {
   const terminal = document.querySelector(".terminal");
   const paneles = document.querySelectorAll("[data-panel-indicador]");
@@ -372,7 +385,7 @@ function alternarIndicadorExpandido(indicador) {
 function activarModoExpandido() {
   document.querySelectorAll("[data-panel-indicador]").forEach((panel) => {
     panel.addEventListener("dblclick", (evento) => {
-      if (evento.target.closest(".resize-indicador")) return;
+      if (evento.target.closest(".resize-indicador, .controles-altura-indicador")) return;
       alternarIndicadorExpandido(panel.dataset.panelIndicador);
     });
   });
@@ -497,6 +510,7 @@ document.getElementById("guardarVista").addEventListener("click", () => { guarda
 window.addEventListener("resize", redimensionarGraficas);
 sincronizarEscalas();
 activarRedimensionadores();
+activarControlesAlturaIndicadores();
 activarModoExpandido();
 activarConfiguracionIndicadores();
 actualizarControles();
