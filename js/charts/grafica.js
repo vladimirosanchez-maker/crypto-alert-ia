@@ -507,6 +507,11 @@ grafica.subscribeCrosshairMove((param) => {
 
 document.querySelectorAll(".btnPeriodo").forEach((boton) => boton.addEventListener("click", () => { guardarVista(); periodoActual = boton.dataset.periodo; primeraCarga = true; actualizarControles(); cargarVelas(); }));
 document.getElementById("guardarVista").addEventListener("click", () => { guardarVista(); establecerEstado("Vista guardada"); });
+document.getElementById("irVelaActual").addEventListener("click", () => {
+  grafica.timeScale().scrollToRealTime();
+  sincronizarADXConGrafica();
+  programarGuardadoVista();
+});
 window.addEventListener("resize", redimensionarGraficas);
 sincronizarEscalas();
 activarRedimensionadores();
