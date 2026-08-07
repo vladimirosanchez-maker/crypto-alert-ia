@@ -8,6 +8,7 @@ let versionContexto = 0;
 let indicadorExpandido = null;
 let detenerStreamingVelas = null;
 let recalculoTiempoRealPendiente = null;
+let consultandoVelaHistorica = false;
 
 const historialesEnMemoria = new Map();
 const descargasHistoricas = new Map();
@@ -61,6 +62,23 @@ function crearOpcionesGrafica(alto) {
 function claveVista(simbolo = activoActual, periodo = periodoActual) { return `${simbolo}:${periodo}`; }
 function establecerEstado(texto) { document.getElementById("estadoConexion").textContent = texto; }
 function formatearPrecio(valor) { return Number(valor).toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+
+function actualizarCabeceraVela(vela) {
+  if (!vela?.time) return;
+  const fecha = new Date(Number(vela.time) * 1000);
+  document.getElementById("infoFecha").textContent = `Fecha: ${fecha.toLocaleDateString("es-CO")}`;
+  document.getElementById("infoHora").textContent = fecha.toLocaleTimeString("es-CO", { hour12: false });
+  document.getElementById("infoOpen").textContent = `O ${formatearPrecio(vela.open)}`;
+  document.getElementById("infoHigh").textContent = `H ${formatearPrecio(vela.high)}`;
+  document.getElementById("infoLow").textContent = `L ${formatearPrecio(vela.low)}`;
+  document.getElementById("infoClose").textContent = `C ${formatearPrecio(vela.close)}`;
+}
+
+function actualizarCabeceraConUltimaVela() {
+  const ultima = historialesEnMemoria.get(claveVista())?.at(-1);
+  if (!ultima) return;
+  actualizarCabeceraVela({ time: Number(ultima[0]) / 1000, open: Number(ultima[1]), high: Number(ultima[2]), low: Number(ultima[3]), close: Number(ultima[4]) });
+}
 
 function sincronizarLineasAlertas(alertas = ALERTAS.obtener()) {
   lineasAlertas.forEach((linea) => velas.removePriceLine(linea));
@@ -177,6 +195,7 @@ function aplicarDatosGrafica(datos, restaurarVista, conservarPosicionLogica = fa
   limiteSuperior.setData(velasFormateadas.map((vela) => ({ time: vela.time, value: 100 })));
   actualizarPresentacionIndicadores();
   actualizarAnalisis(velasFormateadas, datosEMA, datosSQZ, datosRSI);
+  if (!consultandoVelaHistorica) actualizarCabeceraVela(velasFormateadas.at(-1));
   if (restaurarVista) restaurarVistaInicial(datos);
   else if (rangoAnterior) {
     if (conservarPosicionLogica) grafica.timeScale().setVisibleLogicalRange(rangoAnterior);
@@ -223,6 +242,7 @@ function actualizarVelaTiempoReal(vela) {
   const rangoLogico = grafica.timeScale().getVisibleLogicalRange();
   velas.update({ time: nuevaVela[0] / 1000, open: apertura, high: maximo, low: minimo, close: cierre });
   volumen.update({ time: nuevaVela[0] / 1000, value: Number(vela.v), color: cierre >= apertura ? "#26a69a99" : "#ef535099" });
+  if (!consultandoVelaHistorica) actualizarCabeceraVela({ time: nuevaVela[0] / 1000, open: apertura, high: maximo, low: minimo, close: cierre });
   if (rangoLogico) grafica.timeScale().setVisibleLogicalRange(rangoLogico);
   sincronizarADXConGrafica();
   clearTimeout(recalculoTiempoRealPendiente);
@@ -243,6 +263,7 @@ function actualizarPrecioActivoEnTiempoReal(precio) {
 
   const rangoLogico = grafica.timeScale().getVisibleLogicalRange();
   velas.update({ time: Number(ultima[0]) / 1000, open: apertura, high: maximo, low: minimo, close: precio });
+  if (!consultandoVelaHistorica) actualizarCabeceraVela({ time: Number(ultima[0]) / 1000, open: apertura, high: maximo, low: minimo, close: precio });
   if (rangoLogico) grafica.timeScale().setVisibleLogicalRange(rangoLogico);
   sincronizarADXConGrafica();
   clearTimeout(recalculoTiempoRealPendiente);
@@ -462,14 +483,13 @@ function activarConfiguracionIndicadores() {
 
 grafica.subscribeCrosshairMove((param) => {
   const vela = param.seriesData?.get(velas);
-  if (!vela || !param.time) return;
-  const fecha = new Date(param.time * 1000);
-  document.getElementById("infoFecha").textContent = `Fecha: ${fecha.toLocaleDateString("es-CO")}`;
-  document.getElementById("infoHora").textContent = fecha.toLocaleTimeString("es-CO", { hour12: false });
-  document.getElementById("infoOpen").textContent = `O ${formatearPrecio(vela.open)}`;
-  document.getElementById("infoHigh").textContent = `H ${formatearPrecio(vela.high)}`;
-  document.getElementById("infoLow").textContent = `L ${formatearPrecio(vela.low)}`;
-  document.getElementById("infoClose").textContent = `C ${formatearPrecio(vela.close)}`;
+  if (!vela || !param.time) {
+    consultandoVelaHistorica = false;
+    actualizarCabeceraConUltimaVela();
+    return;
+  }
+  consultandoVelaHistorica = true;
+  actualizarCabeceraVela({ time: param.time, open: vela.open, high: vela.high, low: vela.low, close: vela.close });
 });
 
 document.querySelectorAll(".btnPeriodo").forEach((boton) => boton.addEventListener("click", () => { guardarVista(); periodoActual = boton.dataset.periodo; primeraCarga = true; actualizarControles(); cargarVelas(); }));
