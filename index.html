@@ -1,154 +1,72 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
-
 <head>
-
-    <meta charset="UTF-8">
-
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>Crypto Alert IA Pro</title>
-
-    <link rel="stylesheet" href="style.css">
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Plataforma de analisis tecnico de criptomonedas.">
+  <title>Crypto Alert IA Pro</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="ui.css">
 </head>
-
 <body>
-
-    <div class="contenedor">
-
-        <h1>🚀 Crypto Alert IA Pro</h1>
-
-        <p class="subtitulo">
-            Monitoreo inteligente de criptomonedas
-        </p>
-        <div class="estadoAPI">
-
-    <span id="estadoConexion">
-
-        🟢 Binance Conectado
-
-    </span>
-
-    <span id="horaSistema">
-
-    </span>
-
-</div>
-
-<div id="btc" class="tarjeta">
-
-    <div class="cabeceraTarjeta">
-
-        <h2>₿ Bitcoin</h2>
-
-        <span class="estadoMoneda">🟢 En línea</span>
-
-    </div>
-
-    <h3 id="precioBTC" class="precio">Cargando...</h3>
-
-    <p id="cambioBTC" class="cambio"></p>
-
-    <p id="horaBTC" class="hora"></p>
-
-    <p id="emaBTC">EMA 200: --</p>
-
-</div>
-
-<div id="eth" class="tarjeta">
-
-    <div class="cabeceraTarjeta">
-
-        <h2>♦ Ethereum</h2>
-
-        <span class="estadoMoneda">🟢 En línea</span>
-
-    </div>
-    
-    <h3 id="precioETH" class="precio">Cargando...</h3>
-
-    <p id="cambioETH" class="cambio"></p>
-
-    <p id="horaETH" class="hora"></p>
-
-    <p id="emaETH">EMA 200: --</p>
-
-</div>
-
-
-<div id="panelIA" class="panelIA">
-
-    <h3>🤖 Motor IA</h3>
-
-    <p id="estadoIA">Analizando...</p>
-
-    <p id="scoreIA"></p>
-
-</div>
-
-<div class="barraTemporalidades">
-
-    <button class="btnPeriodo" data-periodo="1m">1m</button>
-
-    <button class="btnPeriodo" data-periodo="5m">5m</button>
-
-    <button class="btnPeriodo" data-periodo="15m">15m</button>
-
-    <button class="btnPeriodo" data-periodo="1h">1H</button>
-
-    <button class="btnPeriodo" data-periodo="4h">4H</button>
-
-    <button class="btnPeriodo" data-periodo="1d">1D</button>
-
-    <button class="btnPeriodo" data-periodo="1w">1W</button>
-
-</div>
-
-<div id="infoVela" class="infoVela">
-
-    <span id="infoFecha">Fecha: --</span>
-
-    <span id="infoHora">Hora: --</span>
-
-    <span id="contadorVela">⏳ --:--</span>
-
-    <span id="infoOpen">O: --</span>
-
-    <span id="infoHigh">H: --</span>
-
-    <span id="infoLow">L: --</span>
-
-    <span id="infoClose">C: --</span>
-
-</div>
-
-<div id="graficaBTC" class="grafica"></div>
-
-<div id="panelVolumen" class="panelIndicador"></div>
-
-<div id="panelADX" class="panelIndicador"></div>
-
-    </div>
-
-<script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
-
-<script src="js/config.js"></script>
-
-<script src="js/api.js"></script>
-
-<script src="js/dashboard.js"></script>
-
-<script src="js/charts/ema.js"></script>
-
-<script src="js/charts/volumen.js"></script>
-
-<script src="js/charts/adx.js"></script>
-
-<script src="js/ia/analizador.js"></script>
-
-<script src="js/charts/grafica.js"></script>
-
+  <main class="terminal" aria-label="Crypto Alert IA Pro">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="Crypto Alert IA Pro, inicio"><img class="brand-logo" src="assets/crypto-alert-logo.png" width="36" height="36" alt=""><span>Crypto Alert <strong>IA</strong></span></a>
+      <div class="market-status"><span class="status-dot" aria-hidden="true"></span><span id="estadoConexion">Binance conectado</span><span class="separator" aria-hidden="true"></span><time id="horaSistema">--:--:--</time></div>
+    </header>
+    <section class="workspace">
+      <aside id="watchlist" class="watchlist" aria-label="Lista de seguimiento">
+        <div class="panel-heading"><h2>Lista de seguimiento</h2><button class="icon-button" type="button" aria-label="Anadir activo" title="Proximamente">+</button></div>
+        <div class="watchlist-labels"><span>Activo</span><span>Ultimo</span></div>
+        <div class="listaCriptos">
+          <button class="itemCripto itemActivo" type="button" data-symbol="BTCUSDT"><span class="symbol-cell"><span class="coin-icon bitcoin">B</span><span><strong>BTC</strong><small>Bitcoin</small></span></span><span id="precioBTCLista" class="precioLista">--</span></button>
+          <button class="itemCripto" type="button" data-symbol="ETHUSDT"><span class="symbol-cell"><span class="coin-icon ethereum">E</span><span><strong>ETH</strong><small>Ethereum</small></span></span><span id="precioETHLista" class="precioLista">--</span></button>
+        </div>
+      </aside>
+      <section class="main-column">
+        <div class="instrument-bar">
+          <div class="instrument-title"><span id="activoTitulo">BTCUSDT</span><span class="market-type">Perpetuo</span></div>
+          <div class="toolbar"><div class="barraTemporalidades" role="group" aria-label="Temporalidad"><button class="btnPeriodo" data-periodo="1m" type="button">1m</button><button class="btnPeriodo" data-periodo="5m" type="button">5m</button><button class="btnPeriodo" data-periodo="15m" type="button">15m</button><button class="btnPeriodo" data-periodo="1h" type="button">1h</button><button class="btnPeriodo" data-periodo="4h" type="button">4h</button><button class="btnPeriodo" data-periodo="1d" type="button">1D</button><button class="btnPeriodo" data-periodo="1w" type="button">1S</button></div><button id="abrirAlertas" class="btn-alertas" type="button">Alertas</button><button id="guardarVista" class="btn-guardar-vista" type="button">Guardar vista</button></div>
+        </div>
+        <section class="chart-panel" aria-label="Grafico de precio">
+          <div id="infoVela" class="infoVela" aria-live="polite"><span id="infoFecha">Fecha: --</span><span id="infoHora">Hora: --</span><span id="infoOpen">O --</span><span id="infoHigh">H --</span><span id="infoLow">L --</span><span id="infoClose">C --</span><span id="contadorVela" class="candle-countdown">Cierre --:--</span></div>
+          <div id="contenedorGrafica" class="contenedorGrafica"><div id="graficaPrincipal" class="grafica"></div><img class="chart-brand-mark" src="assets/crypto-alert-logo.png" alt="" aria-hidden="true"></div>
+        </section>
+        <section id="panelADX" class="panelIndicador" data-panel-indicador="adx" aria-label="SQZ+ADX+TTM"><button id="editarSQZ" class="titulo-indicador" type="button">SQZ+ADX+TTM</button><div class="resize-indicador" data-indicador="adx" role="separator" aria-label="Cambiar altura de SQZ ADX TTM" tabindex="0"></div><img class="chart-brand-mark" src="assets/crypto-alert-logo.png" alt="" aria-hidden="true"></section>
+        <section id="panelRSI" class="panelIndicador" data-panel-indicador="rsi" aria-label="RSI"><button id="editarRSI" class="titulo-indicador" type="button">RSI</button><div class="resize-indicador" data-indicador="rsi" role="separator" aria-label="Cambiar altura de RSI" tabindex="0"></div><img class="chart-brand-mark" src="assets/crypto-alert-logo.png" alt="" aria-hidden="true"></section>
+      </section>
+      <aside id="panelIA" class="ia-panel" aria-label="Motor de IA">
+        <div class="panel-heading"><h2>Motor IA</h2><span class="ai-badge">EN VIVO</span></div>
+        <div class="ia-score"><span id="scoreIA">--</span><small>score de tendencia</small></div>
+        <div class="ia-state"><span class="state-label">Sesgo actual</span><strong id="estadoIA">Analizando...</strong></div>
+        <section class="analisis-temporal" aria-live="polite"><span class="state-label">Análisis temporalidad</span><p id="analisisTemporal">Esperando datos de velas e indicadores...</p><p id="analisisFractal" class="analisis-fractal">Estructura fractal: esperando pivotes confirmados.</p><div id="nivelesFractales" class="niveles-fractales">Máximo fractal: -- · Mínimo fractal: --</div><div class="factibilidad-temporal"><div><span>Factibilidad subida</span><strong id="factibilidadSubida">--%</strong><i id="barraSubida"></i></div><div><span>Factibilidad caída</span><strong id="factibilidadCaida">--%</strong><i id="barraCaida"></i></div></div><p id="condicionTemporal" class="condicion-temporal">Confianza: --</p></section>
+        <div class="ia-note"><img src="assets/crypto-alert-logo.png" alt="" aria-hidden="true">Análisis técnico automático basado en velas, volumen, EMA, ADX, SQZ+TTM y RSI. No constituye una recomendación financiera.</div>
+      </aside>
+    </section>
+    <footer class="chart-attribution">Gráficas con <a href="https://www.tradingview.com/" target="_blank" rel="noreferrer">Lightweight Charts™ by TradingView</a></footer>
+  </main>
+  <dialog id="dialogoIndicador" class="dialogo-indicador">
+    <form id="formularioIndicador" method="dialog">
+      <div class="dialogo-cabecera"><h2 id="tituloDialogo">Indicador</h2><button id="cerrarDialogo" class="cerrar-dialogo" type="button" aria-label="Cerrar">x</button></div>
+      <div id="camposIndicador" class="campos-indicador"></div>
+      <div class="acciones-dialogo"><button id="cancelarIndicador" type="button">Cancelar</button><button class="guardar-indicador" type="submit">Guardar cambios</button></div>
+    </form>
+  </dialog>
+  <dialog id="dialogoAlertas" class="dialogo-alertas">
+    <div class="dialogo-cabecera"><h2>Alertas de precio</h2><button id="cerrarAlertas" class="cerrar-dialogo" type="button" aria-label="Cerrar">×</button></div>
+    <p class="texto-alertas">Recibe un aviso cuando el precio cruce el nivel indicado.</p>
+    <form id="formularioAlerta" class="formulario-alerta">
+      <label><span>Activo</span><select id="alertaSimbolo" name="simbolo"><option value="BTCUSDT">BTC / USDT</option><option value="ETHUSDT">ETH / USDT</option></select></label>
+      <label><span>Condición</span><select name="condicion"><option value="above">Cruza por encima</option><option value="below">Cruza por debajo</option></select></label>
+      <label><span>Precio USDT</span><input name="precio" type="number" min="0.01" step="0.01" inputmode="decimal" required placeholder="Ej.: 70 000"></label>
+      <label class="campo-frecuencia-alerta"><span>Frecuencia</span><select name="frecuencia"><option value="once">Una vez y desactivar</option><option value="repeat">En cada cruce</option></select></label>
+      <button class="guardar-indicador" type="submit">Crear alerta</button>
+    </form>
+    <div class="alertas-cabecera"><h3>Mis alertas</h3><button id="activarNotificaciones" type="button">Activar notificaciones</button></div>
+    <div id="listaAlertas" class="lista-alertas" aria-live="polite"></div>
+  </dialog>
+  <div id="notificacionesAlertas" class="notificaciones-alertas" aria-live="assertive" aria-atomic="true"></div>
+  <script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
+  <script src="js/config.js"></script><script src="js/api.js"></script><script src="js/dashboard.js"></script><script src="js/charts/ema.js"></script><script src="js/charts/adx.js"></script><script src="js/charts/rsi.js"></script><script src="js/ia/analizador.js"></script><script src="js/ui/layout.js"></script><script src="js/ui/workspace.js"></script><script src="js/alertas.js"></script><script src="js/charts/grafica.js"></script>
 </body>
-
 </html>

@@ -1,63 +1,33 @@
+function formatearPrecio(valor) {
+  return Number(valor).toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function actualizarReloj() {
+  document.getElementById("horaSistema").textContent = new Date().toLocaleTimeString("es-CO", { hour12: false });
+}
+
 async function actualizarDashboard() {
-
-    const btc = await consultarMoneda("BTCUSDT");
-    const eth = await consultarMoneda("ETHUSDT");
-
-    if (btc) {
-
-        mostrarMoneda(
-            btc,
-            "precioBTC",
-            "cambioBTC",
-            "horaBTC"
-        );
-
-    }
-
-    if (eth) {
-
-        mostrarMoneda(
-            eth,
-            "precioETH",
-            "cambioETH",
-            "horaETH"
-        );
-
-    }
-
+  const tickers = await Promise.all(CONFIG.MONEDAS.map(consultarMoneda));
+  tickers.filter(Boolean).forEach(actualizarWatchlist);
 }
-function mostrarMoneda(moneda, idPrecio, idCambio, idHora){
 
-    const precio = Number(moneda.lastPrice);
+function actualizarWatchlist({ symbol, lastPrice }) {
+  const precio = Number(lastPrice);
+  if (!CONFIG.MONEDAS.includes(symbol) || !Number.isFinite(precio)) return;
 
-    document.getElementById(idPrecio).innerHTML =
-        "$ " +
-        precio.toLocaleString("es-CO",{
-            minimumFractionDigits:2,
-            maximumFractionDigits:2
-        });
+  const etiqueta = document.getElementById(`precio${symbol.replace("USDT", "")}Lista`);
+  if (etiqueta) etiqueta.textContent = formatearPrecio(precio);
 
-    const cambio = Number(moneda.priceChangePercent);
-
-    if(cambio>=0){
-
-        document.getElementById(idCambio).innerHTML =
-        "🟢 ▲ +" + cambio.toFixed(2) + "%";
-
-    }
-
-    else{
-
-        document.getElementById(idCambio).innerHTML =
-        "🔴 ▼ " + cambio.toFixed(2) + "%";
-
-    }
-
-    document.getElementById(idHora).innerHTML =
-        "Actualizado: " +
-        new Date().toLocaleTimeString();
-
+  // La lista y la vela activa consumen el mismo tick de mercado.
+  window.dispatchEvent(new CustomEvent("precio-mercado", { detail: { symbol, lastPrice: precio } }));
 }
+
+document.querySelectorAll(".itemCripto").forEach((item) => {
+  item.addEventListener("click", () => cambiarActivo(item.dataset.symbol));
+});
+
 actualizarDashboard();
-
+actualizarReloj();
 setInterval(actualizarDashboard, CONFIG.INTERVALO_ACTUALIZACION);
+setInterval(actualizarReloj, 1000);
+suscribirPreciosEnTiempoReal(CONFIG.MONEDAS, actualizarWatchlist);
