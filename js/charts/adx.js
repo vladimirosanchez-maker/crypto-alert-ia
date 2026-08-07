@@ -14,7 +14,7 @@ function crearGraficaADX() {
   });
   const histogramaTTM = graficaADX.addHistogramSeries({ base: 0, priceFormat: { type: "price", precision: 2, minMove: 0.01 } });
   histogramaTTM.createPriceLine({ price: 0, color: "#c9d0d8", lineWidth: 1, axisLabelVisible: false });
-  const lineaADX = graficaADX.addLineSeries({ color: "#f1f5f9", lineWidth: 2, title: "SQZ+ADX", priceLineVisible: false });
+  const lineaADX = graficaADX.addLineSeries({ color: "#f1f5f9", lineWidth: 2, title: "", priceLineVisible: false });
   return { graficaADX, histogramaTTM, lineaADX };
 }
 

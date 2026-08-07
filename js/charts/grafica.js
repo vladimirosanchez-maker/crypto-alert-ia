@@ -41,9 +41,9 @@ const dimensionesIniciales = obtenerDimensionesGraficas();
 const grafica = LightweightCharts.createChart(contenedorGrafica, crearOpcionesGrafica(dimensionesIniciales.principal));
 const formatoPrecio = { type: "custom", minMove: 0.01, formatter: formatearPrecio };
 const velas = grafica.addCandlestickSeries({ upColor: "#26a69a", downColor: "#ef5350", borderUpColor: "#26a69a", borderDownColor: "#ef5350", wickUpColor: "#26a69a", wickDownColor: "#ef5350", priceFormat: formatoPrecio });
-const ema10 = grafica.addLineSeries({ color: "#42a5f5", lineWidth: 1, title: "EMA 10", priceFormat: formatoPrecio, priceLineVisible: false });
-const ema55 = grafica.addLineSeries({ color: "#f6c344", lineWidth: 1, title: "EMA 55", priceFormat: formatoPrecio, priceLineVisible: false });
-const ema200 = grafica.addLineSeries({ color: "#d5dbe4", lineWidth: 1, title: "EMA 200", priceFormat: formatoPrecio, priceLineVisible: false });
+const ema10 = grafica.addLineSeries({ color: "#42a5f5", lineWidth: 1, title: "", priceFormat: formatoPrecio, priceLineVisible: false });
+const ema55 = grafica.addLineSeries({ color: "#f6c344", lineWidth: 1, title: "", priceFormat: formatoPrecio, priceLineVisible: false });
+const ema200 = grafica.addLineSeries({ color: "#d5dbe4", lineWidth: 1, title: "", priceFormat: formatoPrecio, priceLineVisible: false });
 const volumen = grafica.addHistogramSeries({ priceScaleId: "volume", priceFormat: { type: "volume" } });
 const { graficaADX, histogramaTTM, lineaADX } = crearGraficaADX();
 const { graficaRSI, rsi, senal, limiteInferior, limiteSuperior, lineasBanda } = crearGraficaRSI();
@@ -87,11 +87,11 @@ function sincronizarLineasAlertas(alertas = ALERTAS.obtener()) {
     const esAlcista = alerta.condicion === "above";
     const linea = velas.createPriceLine({
       price: alerta.precio,
-      color: esAlcista ? "#26a69a" : "#ef5350",
+      color: esAlcista ? "#0f6b4f" : "#ff9800",
       lineWidth: 1,
       lineStyle: LightweightCharts.LineStyle.Dotted,
       axisLabelVisible: true,
-      title: esAlcista ? "Alerta ↑" : "Alerta ↓"
+      title: ""
     });
     lineasAlertas.set(alerta.id, linea);
   });

@@ -10,8 +10,8 @@ function crearGraficaRSI() {
     handleScroll: false,
     handleScale: { mouseWheel: false, pinch: false, axisPressedMouseMove: true, axisDoubleClickReset: true }
   });
-  const rsi = graficaRSI.addLineSeries({ color: "#f4df17", lineWidth: 1, title: "RSI", priceLineVisible: false });
-  const senal = graficaRSI.addLineSeries({ color: "#f1f5f9", lineWidth: 1, title: "RSI-based MA", priceLineVisible: false });
+  const rsi = graficaRSI.addLineSeries({ color: "#f4df17", lineWidth: 1, title: "", priceLineVisible: false });
+  const senal = graficaRSI.addLineSeries({ color: "#f1f5f9", lineWidth: 1, title: "", priceLineVisible: false });
   const limiteInferior = graficaRSI.addLineSeries({ color: "rgba(0,0,0,0)", lineWidth: 1, lastValueVisible: false, priceLineVisible: false });
   const limiteSuperior = graficaRSI.addLineSeries({ color: "rgba(0,0,0,0)", lineWidth: 1, lastValueVisible: false, priceLineVisible: false });
   const bandas = [CONFIG.RSI.bandaInferior, CONFIG.RSI.bandaMedia, CONFIG.RSI.bandaSuperior];
