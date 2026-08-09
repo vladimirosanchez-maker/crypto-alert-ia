@@ -1,7 +1,17 @@
 async function solicitarBinance(ruta) {
-  const respuesta = await fetch(`${CONFIG.API_FUTURES}${ruta}`);
-  if (!respuesta.ok) throw new Error(`Binance respondio ${respuesta.status}`);
-  return respuesta.json();
+  try {
+    const respuesta = await fetch(`${CONFIG.API_FUTURES}${ruta}`);
+    if (!respuesta.ok) throw new Error(`Binance Futures respondió ${respuesta.status}`);
+    return respuesta.json();
+  } catch (errorFutures) {
+    const admiteRespaldo = ruta.startsWith("/fapi/v1/klines") || ruta.startsWith("/fapi/v1/ticker/24hr");
+    if (!admiteRespaldo) throw errorFutures;
+    // Algunas redes móviles bloquean Futures. Spot conserva el mismo esquema OHLCV.
+    const rutaSpot = ruta.replace("/fapi/v1/", "/api/v3/").replace(/([?&]limit=)1500(?=&|$)/, (_, prefijo) => `${prefijo}1000`);
+    const respuestaSpot = await fetch(`${CONFIG.API_SPOT_RESPALDO}${rutaSpot}`);
+    if (!respuestaSpot.ok) throw new Error(`Respaldo Binance Spot respondió ${respuestaSpot.status}`);
+    return respuestaSpot.json();
+  }
 }
 
 async function consultarMoneda(simbolo) {
@@ -62,7 +72,6 @@ async function consultarVelasHistoricas(simbolo, intervalo, opciones = {}) {
     resultado.push(...lote.filter((vela) => !resultado.length || vela[0] > resultado.at(-1)[0]));
     cursor = Number(lote.at(-1)[0]) + intervaloMs;
     opciones.alProgreso?.({ descargadas: resultado.length, hasta: cursor, ahora });
-    if (lote.length < limite) break;
     await esperar(CONFIG.PAUSA_ENTRE_CONSULTAS_MS);
   }
   return resultado;

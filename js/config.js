@@ -1,5 +1,6 @@
 const CONFIG = Object.freeze({
   API_FUTURES: "https://fapi.binance.com",
+  API_SPOT_RESPALDO: "https://data-api.binance.vision",
   WS_FUTURES: "wss://fstream.binance.com",
   MONEDAS: ["BTCUSDT", "ETHUSDT"],
   INTERVALO_ACTUALIZACION: 5000,
