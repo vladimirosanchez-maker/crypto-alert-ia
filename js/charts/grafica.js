@@ -72,6 +72,11 @@ function actualizarCabeceraVela(vela) {
   document.getElementById("infoHigh").textContent = `H ${formatearPrecio(vela.high)}`;
   document.getElementById("infoLow").textContent = `L ${formatearPrecio(vela.low)}`;
   document.getElementById("infoClose").textContent = `C ${formatearPrecio(vela.close)}`;
+  const cambio = vela.open ? ((vela.close - vela.open) / vela.open) * 100 : 0;
+  const etiquetaCambio = document.getElementById("infoCambio");
+  etiquetaCambio.textContent = `${cambio > 0 ? "+" : ""}${cambio.toFixed(2)}%`;
+  etiquetaCambio.classList.toggle("positivo", cambio > 0);
+  etiquetaCambio.classList.toggle("negativo", cambio < 0);
 }
 
 function actualizarCabeceraConUltimaVela() {
@@ -111,6 +116,7 @@ function iniciarDescargaHistorica(simbolo, periodo) {
   const clave = claveVista(simbolo, periodo);
   if (descargasHistoricas.has(clave)) return;
   const descarga = consultarVelasHistoricas(simbolo, periodo, {
+    desde: obtenerInicioContextoAnalisis(periodo),
     alProgreso: ({ descargadas }) => { if (clave === claveVista()) establecerEstado(`Cargando historial: ${descargadas.toLocaleString("es-CO")} velas`); }
   }).then((datos) => {
     if (datos.length) historialesEnMemoria.set(clave, datos);
@@ -151,15 +157,16 @@ function actualizarAnalisis(velasFormateadas, datosEMA, datosSQZ, datosRSI) {
     ema200: datosEMA[2].ultimo,
     rsi: datosRSI,
     sqz: datosSQZ,
-    ajustesSQZ: configuracionIndicadores.sqz
+    ajustesSQZ: configuracionIndicadores.sqz,
+    temporalidad: periodoActual
   });
   const estado = document.getElementById("estadoIA");
   estado.textContent = analisis.estado;
   estado.style.color = analisis.color;
   document.getElementById("scoreIA").textContent = `${analisis.score}/100`;
   document.getElementById("analisisTemporal").textContent = analisis.resumen;
-  document.getElementById("analisisFractal").textContent = analisis.fractal;
-  document.getElementById("nivelesFractales").textContent = analisis.nivelesFractales;
+  document.getElementById("analisisModelo").textContent = analisis.modelo;
+  document.getElementById("nivelesTecnicos").textContent = analisis.nivelesTecnicos;
   document.getElementById("factibilidadSubida").textContent = `${analisis.probabilidadAlcista}%`;
   document.getElementById("factibilidadCaida").textContent = `${analisis.probabilidadBajista}%`;
   document.getElementById("barraSubida").style.setProperty("--valor", `${analisis.probabilidadAlcista}%`);

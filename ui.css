@@ -60,8 +60,8 @@
 
 .analisis-temporal { padding: 10px 11px; border: 1px solid #263848; border-radius: 6px; background: #0d151d; }
 .analisis-temporal p { margin: 6px 0 0; color: #b7c4d1; font-size: 11px; line-height: 1.45; }
-.analisis-temporal .analisis-fractal { padding: 7px 8px; border-left: 2px solid #22c7d6; background: #0a1922; color: #c5e4e9; font-size: 10px; }
-.niveles-fractales { margin-top: 7px; color: #f0c85c; font-family: Consolas, ui-monospace, monospace; font-size: 10px; font-variant-numeric: tabular-nums; }
+.analisis-temporal .analisis-modelo { padding: 7px 8px; border-left: 2px solid #22c7d6; background: #0a1922; color: #c5e4e9; font-size: 10px; }
+.niveles-tecnicos { margin-top: 7px; color: #f0c85c; font-family: Consolas, ui-monospace, monospace; font-size: 10px; font-variant-numeric: tabular-nums; }
 .controles-altura-indicador { position: absolute; z-index: 13; top: 6px; right: 48px; display: flex; gap: 3px; }.controles-altura-indicador button { width: 23px; height: 22px; border: 1px solid #34455a; border-radius: 4px; padding: 0; background: #121d29; color: #bdd5ea; font-size: 16px; line-height: 1; cursor: pointer; }.controles-altura-indicador button:hover { background: #263b52; color: #fff; }
 .btn-vela-actual { position: absolute; z-index: 9; right: 68px; bottom: 10px; min-width: 34px; height: 25px; border: 1px solid #38526d; border-radius: 4px; background: #122133; color: #9ed9ff; font-size: 10px; font-weight: 800; letter-spacing: -1px; cursor: pointer; }.btn-vela-actual:hover { background: #203c55; color: #fff; }.btn-vela-actual:focus-visible { outline: 2px solid #7193ff; outline-offset: 2px; }
 @media (max-width: 600px) { .btn-vela-actual { right: 48px; bottom: 9px; min-width: 38px; height: 29px; font-size: 11px; } }
@@ -85,3 +85,12 @@
 @media (max-width: 600px) { .btn-alertas { min-height: 36px; margin-left: 5px; white-space: nowrap; }.dialogo-alertas { padding: 16px; }.notificaciones-alertas { right: 10px; bottom: 10px; width: calc(100vw - 20px); } }
 .ia-note { display: flex; align-items: flex-start; gap: 8px; color: #ff6b6b; font-weight: 700; }
 .ia-note img { width: 20px; height: 20px; flex: 0 0 20px; object-fit: contain; }
+.cambio-vela { color: #8792a2; font-variant-numeric: tabular-nums; }
+.cambio-vela.positivo { color: #26a69a; }
+.cambio-vela.negativo { color: #ef5350; }
+.ia-note a { color: #8ab4f8; }
+.analisis-ciclo { padding: 10px 11px; border: 1px solid #3b3423; border-radius: 6px; background: #18150e; }
+.analisis-ciclo strong { display: block; margin-top: 6px; color: #f0c85c; }
+.analisis-ciclo p { margin: 6px 0 0; color: #c8c0a8; font-size: 10px; line-height: 1.45; }
+.analisis-ciclo small { display: block; margin-top: 7px; color: #837c6a; font-size: 9px; line-height: 1.4; }
+.analisis-ciclo a { color: #d4ad54; }

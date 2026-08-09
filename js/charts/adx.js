@@ -89,8 +89,14 @@ function calcularRegresionLineal(valores, periodo) {
 }
 
 function calcularADXCrudo(velas, diLength, adxLength) {
+  return calcularDMI(velas, diLength, adxLength).adx;
+}
+
+function calcularDMI(velas, diLength, adxLength) {
   const resultado = Array(velas.length).fill(NaN);
-  if (velas.length < diLength + adxLength) return resultado;
+  const plusDI = Array(velas.length).fill(NaN);
+  const minusDI = Array(velas.length).fill(NaN);
+  if (velas.length < diLength + adxLength) return { adx: resultado, plusDI, minusDI };
   const tr = calcularRangoVerdadero(velas);
   const plusDM = Array(velas.length).fill(0);
   const minusDM = Array(velas.length).fill(0);
@@ -112,6 +118,8 @@ function calcularADXCrudo(velas, diLength, adxLength) {
     }
     const plus = 100 * plusSuavizado / trSuavizado;
     const minus = 100 * minusSuavizado / trSuavizado;
+    plusDI[indice] = plus;
+    minusDI[indice] = minus;
     dx.push({ indice, valor: 100 * Math.abs(plus - minus) / (plus + minus || 1) });
   }
   let adx = dx.slice(0, adxLength).reduce((suma, dato) => suma + dato.valor, 0) / adxLength;
@@ -120,5 +128,5 @@ function calcularADXCrudo(velas, diLength, adxLength) {
     adx = ((adx * (adxLength - 1)) + dx[indice].valor) / adxLength;
     resultado[dx[indice].indice] = adx;
   }
-  return resultado;
+  return { adx: resultado, plusDI, minusDI };
 }
