@@ -3,8 +3,62 @@ const ALERTAS = (() => {
   const formulario = document.getElementById("formularioAlerta");
   const lista = document.getElementById("listaAlertas");
   const contenedorNotificaciones = document.getElementById("notificacionesAlertas");
+  const botonNotificaciones = document.getElementById("activarNotificaciones");
+  const estadoNotificaciones = document.getElementById("estadoNotificaciones");
   const preciosAnteriores = new Map();
   let alertas = WORKSPACE.cargar()?.alertas || [];
+  let registroNotificaciones = null;
+
+  function esIOS() {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  }
+
+  function esAplicacionInstalada() {
+    return window.matchMedia?.("(display-mode: standalone)").matches || navigator.standalone === true;
+  }
+
+  async function registrarNotificacionesMoviles() {
+    if (!("serviceWorker" in navigator) || !window.isSecureContext) return null;
+    try {
+      await navigator.serviceWorker.register("./sw.js");
+      return await navigator.serviceWorker.ready;
+    } catch (error) {
+      console.warn("No fue posible registrar las notificaciones móviles.", error);
+      return null;
+    }
+  }
+
+  function actualizarEstadoNotificaciones() {
+    if (!("Notification" in window)) {
+      estadoNotificaciones.textContent = esIOS()
+        ? "En iPhone: instala la web en la pantalla de inicio y ábrela desde allí para activar avisos."
+        : "Este navegador no admite notificaciones del sistema. Seguirás viendo el aviso dentro de la web.";
+      estadoNotificaciones.className = "estado-notificaciones notificaciones-bloqueadas";
+      botonNotificaciones.hidden = true;
+      return;
+    }
+
+    const permiso = Notification.permission;
+    if (permiso === "granted") {
+      estadoNotificaciones.textContent = "Notificaciones activadas en este dispositivo.";
+      estadoNotificaciones.className = "estado-notificaciones notificaciones-listas";
+      botonNotificaciones.textContent = "Notificaciones activas";
+      return;
+    }
+    if (permiso === "denied") {
+      estadoNotificaciones.textContent = "Las notificaciones están bloqueadas. Actívalas en los ajustes del navegador o del sitio.";
+      estadoNotificaciones.className = "estado-notificaciones notificaciones-bloqueadas";
+      botonNotificaciones.textContent = "Notificaciones bloqueadas";
+      return;
+    }
+    if (esIOS() && !esAplicacionInstalada()) {
+      estadoNotificaciones.textContent = "Para recibir avisos en iPhone: Compartir → Añadir a pantalla de inicio; luego abre la app y activa las notificaciones.";
+    } else {
+      estadoNotificaciones.textContent = "Activa las notificaciones para recibir avisos del sistema mientras la aplicación mantiene conexión al mercado.";
+    }
+    estadoNotificaciones.className = "estado-notificaciones";
+    botonNotificaciones.textContent = "Activar notificaciones";
+  }
 
   function formatearPrecioAlerta(valor) {
     return Number(valor).toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -44,9 +98,25 @@ const ALERTAS = (() => {
     contenedorNotificaciones.append(aviso);
     setTimeout(() => aviso.remove(), 12000);
 
-    if ("Notification" in window && Notification.permission === "granted") {
-      new Notification(titulo, { body: mensaje, icon: "assets/crypto-alert-logo.png" });
+    enviarNotificacionSistema(titulo, mensaje);
+  }
+
+  async function enviarNotificacionSistema(titulo, mensaje) {
+    if (!("Notification" in window) || Notification.permission !== "granted") return;
+    const opciones = {
+      body: mensaje,
+      icon: "assets/crypto-alert-logo.png",
+      badge: "assets/crypto-alert-logo.png",
+      tag: `crypto-alert-${titulo}`,
+      renotify: true,
+      data: { url: location.href }
+    };
+    const registro = await registroNotificaciones;
+    if (registro?.showNotification) {
+      await registro.showNotification(titulo, opciones);
+      return;
     }
+    new Notification(titulo, opciones);
   }
 
   function procesarPrecio({ symbol, lastPrice }) {
@@ -76,6 +146,7 @@ const ALERTAS = (() => {
     const tituloActivo = document.getElementById("activoTitulo")?.textContent;
     if (CONFIG.MONEDAS.includes(tituloActivo)) document.getElementById("alertaSimbolo").value = tituloActivo;
     renderizar();
+    actualizarEstadoNotificaciones();
     dialogo.showModal();
   }
 
@@ -120,12 +191,15 @@ const ALERTAS = (() => {
 
   document.getElementById("abrirAlertas").addEventListener("click", abrir);
   document.getElementById("cerrarAlertas").addEventListener("click", () => dialogo.close());
-  document.getElementById("activarNotificaciones").addEventListener("click", async () => {
+  botonNotificaciones.addEventListener("click", async () => {
     if (!("Notification" in window)) return;
     await Notification.requestPermission();
+    actualizarEstadoNotificaciones();
   });
   window.addEventListener("precio-mercado", ({ detail }) => procesarPrecio(detail || {}));
 
+  registroNotificaciones = registrarNotificacionesMoviles();
+  actualizarEstadoNotificaciones();
   renderizar();
   return { abrir, obtener: () => [...alertas] };
 })();

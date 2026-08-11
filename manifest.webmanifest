@@ -1,0 +1,17 @@
+{
+  "name": "Crypto Alert IA",
+  "short_name": "Crypto Alert IA",
+  "description": "Alertas y análisis técnico de criptomonedas.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0b1016",
+  "theme_color": "#0b1016",
+  "icons": [
+    {
+      "src": "assets/crypto-alert-logo.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
