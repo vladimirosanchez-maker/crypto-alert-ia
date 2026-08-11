@@ -34,10 +34,13 @@ const ALERTAS = (() => {
         ? "En iPhone: instala la web en la pantalla de inicio y ábrela desde allí para activar avisos."
         : "Este navegador no admite notificaciones del sistema. Seguirás viendo el aviso dentro de la web.";
       estadoNotificaciones.className = "estado-notificaciones notificaciones-bloqueadas";
-      botonNotificaciones.hidden = true;
+      botonNotificaciones.hidden = false;
+      botonNotificaciones.disabled = true;
+      botonNotificaciones.textContent = esIOS() ? "Primero: instalar la app" : "No disponible en este navegador";
       return;
     }
 
+    botonNotificaciones.disabled = false;
     const permiso = Notification.permission;
     if (permiso === "granted") {
       estadoNotificaciones.textContent = "Notificaciones activadas en este dispositivo.";
