@@ -7,6 +7,7 @@ function crearGraficaRSI() {
     grid: { vertLines: { color: "#1c242e" }, horzLines: { color: "#1c242e" } },
     rightPriceScale: { borderColor: "#26303c", scaleMargins: { top: 0.12, bottom: 0.12 } },
     timeScale: { borderColor: "#26303c", visible: false },
+    crosshair: { mode: LightweightCharts.CrosshairMode.Normal, vertLine: { color: "#d8e0e8aa", width: 1, style: LightweightCharts.LineStyle.Dotted }, horzLine: { color: "#d8e0e8aa", width: 1, style: LightweightCharts.LineStyle.Dotted } },
     handleScroll: false,
     handleScale: { mouseWheel: false, pinch: false, axisPressedMouseMove: true, axisDoubleClickReset: true }
   });

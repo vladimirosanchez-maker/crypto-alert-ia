@@ -9,11 +9,13 @@ let indicadorExpandido = null;
 let detenerStreamingVelas = null;
 let recalculoTiempoRealPendiente = null;
 let consultandoVelaHistorica = false;
+let sincronizandoCursor = false;
 
 const historialesEnMemoria = new Map();
 const descargasHistoricas = new Map();
 const ultimosPreciosMercado = new Map();
 const lineasAlertas = new Map();
+const valoresCursor = { velas: new Map(), sqz: new Map(), adx: new Map(), rsi: new Map() };
 const estadoGuardado = WORKSPACE.cargar();
 const configuracionIndicadores = {
   rsi: { ...CONFIG.RSI, ...estadoGuardado?.indicadores?.rsi },
@@ -56,7 +58,8 @@ function obtenerDimensionesGraficas() {
 }
 
 function crearOpcionesGrafica(alto) {
-  return { width: contenedorGrafica.clientWidth, height: alto, layout: { background: { color: "#0b0e11" }, textColor: "#8792a2", fontSize: 11, attributionLogo: false }, grid: { vertLines: { color: "#1c242e" }, horzLines: { color: "#1c242e" } }, rightPriceScale: { borderColor: "#26303c" }, timeScale: { borderColor: "#26303c", timeVisible: true, secondsVisible: false }, crosshair: { mode: LightweightCharts.CrosshairMode.Normal } };
+  const lineaCursor = { color: "#d8e0e8aa", width: 1, style: LightweightCharts.LineStyle.Dotted };
+  return { width: contenedorGrafica.clientWidth, height: alto, layout: { background: { color: "#0b0e11" }, textColor: "#8792a2", fontSize: 11, attributionLogo: false }, grid: { vertLines: { color: "#1c242e" }, horzLines: { color: "#1c242e" } }, rightPriceScale: { borderColor: "#26303c" }, timeScale: { borderColor: "#26303c", timeVisible: true, secondsVisible: false }, crosshair: { mode: LightweightCharts.CrosshairMode.Normal, vertLine: lineaCursor, horzLine: lineaCursor } };
 }
 
 function claveVista(simbolo = activoActual, periodo = periodoActual) { return `${simbolo}:${periodo}`; }
@@ -149,6 +152,14 @@ function guardarVista() {
 }
 function programarGuardadoVista() { clearTimeout(guardadoPendiente); guardadoPendiente = setTimeout(guardarVista, 350); }
 function completarSerieConEspacios(velasBase, serie) { const valores = new Map(serie.map((punto) => [punto.time, punto])); return velasBase.map((vela) => valores.get(vela.time) || { time: vela.time }); }
+function completarHistogramaContinuo(velasBase, serie) {
+  const valores = new Map(serie.map((punto) => [punto.time, punto]));
+  return velasBase.map((vela) => valores.get(vela.time) || { time: vela.time, value: 0, color: "rgba(0,0,0,0)" });
+}
+
+function cargarValoresCursor(destino, serie, propiedad) {
+  valoresCursor[destino] = new Map(serie.map((punto) => [punto.time, Number(punto[propiedad])]).filter(([, valor]) => Number.isFinite(valor)));
+}
 
 function actualizarAnalisis(velasFormateadas, datosEMA, datosSQZ, datosRSI) {
   const analisis = obtenerAnalisisTemporal(velasFormateadas, {
@@ -193,13 +204,18 @@ function aplicarDatosGrafica(datos, restaurarVista, conservarPosicionLogica = fa
   const datosEMA = [calcularEMA(velasFormateadas, 10), calcularEMA(velasFormateadas, 55), calcularEMA(velasFormateadas, 200)];
   ema10.setData(datosEMA[0].serie); ema55.setData(datosEMA[1].serie); ema200.setData(datosEMA[2].serie);
   const datosSQZ = calcularSQZADXTTM(velasFormateadas, configuracionIndicadores.sqz);
-  histogramaTTM.setData(completarSerieConEspacios(velasFormateadas, datosSQZ.histograma));
+  const histogramaContinuo = completarHistogramaContinuo(velasFormateadas, datosSQZ.histograma);
+  histogramaTTM.setData(histogramaContinuo);
   lineaADX.setData(completarSerieConEspacios(velasFormateadas, datosSQZ.lineaADX));
   const datosRSI = calcularRSI(velasFormateadas, configuracionIndicadores.rsi.periodo);
   rsi.setData(completarSerieConEspacios(velasFormateadas, datosRSI));
   senal.setData(completarSerieConEspacios(velasFormateadas, calcularMediaRSI(datosRSI, configuracionIndicadores.rsi.periodoSuavizado)));
   limiteInferior.setData(velasFormateadas.map((vela) => ({ time: vela.time, value: 0 })));
   limiteSuperior.setData(velasFormateadas.map((vela) => ({ time: vela.time, value: 100 })));
+  cargarValoresCursor("velas", velasFormateadas, "close");
+  cargarValoresCursor("sqz", histogramaContinuo, "value");
+  cargarValoresCursor("adx", datosSQZ.lineaADX, "value");
+  cargarValoresCursor("rsi", datosRSI, "value");
   actualizarPresentacionIndicadores();
   actualizarAnalisis(velasFormateadas, datosEMA, datosSQZ, datosRSI);
   if (!consultandoVelaHistorica) actualizarCabeceraVela(velasFormateadas.at(-1));
@@ -302,7 +318,30 @@ function actualizarControles() {
   document.querySelectorAll(".itemCripto").forEach((item) => item.classList.toggle("itemActivo", item.dataset.symbol === activoActual));
   document.getElementById("activoTitulo").textContent = activoActual;
 }
-function cambiarActivo(simbolo) { if (!CONFIG.MONEDAS.includes(simbolo)) return; guardarVista(); activoActual = simbolo; primeraCarga = true; actualizarControles(); sincronizarLineasAlertas(); cargarVelas(); }
+function restablecerEscalasDelActivo() {
+  grafica.priceScale("right").applyOptions({ autoScale: true });
+  graficaADX.priceScale("right").applyOptions({ autoScale: true });
+  graficaRSI.priceScale("right").applyOptions({ autoScale: true });
+}
+
+function limpiarSeriesAlCambiarActivo() {
+  velas.setData([]); volumen.setData([]); ema10.setData([]); ema55.setData([]); ema200.setData([]);
+  histogramaTTM.setData([]); lineaADX.setData([]); rsi.setData([]); senal.setData([]);
+  valoresCursor.velas.clear(); valoresCursor.sqz.clear(); valoresCursor.adx.clear(); valoresCursor.rsi.clear();
+}
+
+function cambiarActivo(simbolo) {
+  if (!CONFIG.MONEDAS.includes(simbolo) || simbolo === activoActual) return;
+  guardarVista();
+  activoActual = simbolo;
+  primeraCarga = true;
+  consultandoVelaHistorica = false;
+  limpiarSeriesAlCambiarActivo();
+  restablecerEscalasDelActivo();
+  actualizarControles();
+  sincronizarLineasAlertas();
+  cargarVelas();
+}
 function actualizarContador() {
   const restante = segundosDelPeriodo() - (Math.floor(Date.now() / 1000) % segundosDelPeriodo());
   const horas = Math.floor(restante / 3600);
@@ -511,6 +550,38 @@ grafica.subscribeCrosshairMove((param) => {
   consultandoVelaHistorica = true;
   actualizarCabeceraVela({ time: param.time, open: vela.open, high: vela.high, low: vela.low, close: vela.close });
 });
+
+function valorCursor(destino, tiempo) {
+  const valor = valoresCursor[destino].get(Number(tiempo));
+  return Number.isFinite(valor) ? valor : null;
+}
+
+function moverCursorSincronizado(origen, param) {
+  if (sincronizandoCursor) return;
+  sincronizandoCursor = true;
+  const graficas = [
+    { nombre: "velas", grafica, serie: velas },
+    { nombre: "sqz", grafica: graficaADX, serie: histogramaTTM, alternativa: lineaADX },
+    { nombre: "rsi", grafica: graficaRSI, serie: rsi }
+  ];
+  try {
+    if (!param?.time) {
+      graficas.filter((destino) => destino.nombre !== origen).forEach((destino) => destino.grafica.clearCrosshairPosition());
+      return;
+    }
+    graficas.filter((destino) => destino.nombre !== origen).forEach((destino) => {
+      const valor = valorCursor(destino.nombre, param.time) ?? (destino.nombre === "sqz" ? valorCursor("adx", param.time) : null);
+      if (valor === null) destino.grafica.clearCrosshairPosition();
+      else destino.grafica.setCrosshairPosition(valor, param.time, destino.serie);
+    });
+  } finally {
+    sincronizandoCursor = false;
+  }
+}
+
+grafica.subscribeCrosshairMove((param) => moverCursorSincronizado("velas", param));
+graficaADX.subscribeCrosshairMove((param) => moverCursorSincronizado("sqz", param));
+graficaRSI.subscribeCrosshairMove((param) => moverCursorSincronizado("rsi", param));
 
 document.querySelectorAll(".btnPeriodo").forEach((boton) => boton.addEventListener("click", () => { guardarVista(); periodoActual = boton.dataset.periodo; primeraCarga = true; actualizarControles(); cargarVelas(); }));
 document.getElementById("guardarVista").addEventListener("click", () => { guardarVista(); establecerEstado("Vista guardada"); });

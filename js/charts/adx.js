@@ -9,10 +9,11 @@ function crearGraficaADX() {
     grid: { vertLines: { color: "#1c242e" }, horzLines: { color: "#1c242e" } },
     rightPriceScale: { borderColor: "#26303c", scaleMargins: { top: 0.16, bottom: 0.1 } },
     timeScale: { borderColor: "#26303c", visible: false },
+    crosshair: { mode: LightweightCharts.CrosshairMode.Normal, vertLine: { color: "#d8e0e8aa", width: 1, style: LightweightCharts.LineStyle.Dotted }, horzLine: { color: "#d8e0e8aa", width: 1, style: LightweightCharts.LineStyle.Dotted } },
     handleScroll: false,
     handleScale: { mouseWheel: false, pinch: false, axisPressedMouseMove: true, axisDoubleClickReset: true }
   });
-  const histogramaTTM = graficaADX.addHistogramSeries({ base: 0, priceFormat: { type: "price", precision: 2, minMove: 0.01 } });
+  const histogramaTTM = graficaADX.addHistogramSeries({ base: 0, priceFormat: { type: "price", precision: 2, minMove: 0.01 }, lastValueVisible: true });
   histogramaTTM.createPriceLine({ price: 0, color: "#c9d0d8", lineWidth: 1, axisLabelVisible: false });
   const lineaADX = graficaADX.addLineSeries({ color: "#f1f5f9", lineWidth: 2, title: "", priceLineVisible: false });
   return { graficaADX, histogramaTTM, lineaADX };
