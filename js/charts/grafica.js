@@ -59,7 +59,7 @@ function obtenerDimensionesGraficas() {
 
 function crearOpcionesGrafica(alto) {
   const lineaCursor = { color: "#d8e0e8aa", width: 1, style: LightweightCharts.LineStyle.Dotted };
-  return { width: contenedorGrafica.clientWidth, height: alto, layout: { background: { color: "#0b0e11" }, textColor: "#8792a2", fontSize: 11, attributionLogo: false }, grid: { vertLines: { color: "#1c242e" }, horzLines: { color: "#1c242e" } }, rightPriceScale: { borderColor: "#26303c" }, timeScale: { borderColor: "#26303c", timeVisible: true, secondsVisible: false }, crosshair: { mode: LightweightCharts.CrosshairMode.Normal, vertLine: lineaCursor, horzLine: lineaCursor } };
+  return { width: contenedorGrafica.clientWidth, height: alto, layout: { background: { color: "#0b0e11" }, textColor: "#8792a2", fontSize: 11, attributionLogo: false }, grid: { vertLines: { color: "#1c242e" }, horzLines: { color: "#1c242e" } }, rightPriceScale: { borderColor: "#26303c", minimumWidth: window.innerWidth <= 600 ? 58 : 78 }, timeScale: { borderColor: "#26303c", timeVisible: true, secondsVisible: false }, crosshair: { mode: LightweightCharts.CrosshairMode.Normal, vertLine: lineaCursor, horzLine: lineaCursor } };
 }
 
 function claveVista(simbolo = activoActual, periodo = periodoActual) { return `${simbolo}:${periodo}`; }

@@ -7,7 +7,7 @@ function crearGraficaADX() {
     height: LAYOUT.adx,
     layout: { background: { color: "#0b0e11" }, textColor: "#8792a2", fontSize: 11, attributionLogo: false },
     grid: { vertLines: { color: "#1c242e" }, horzLines: { color: "#1c242e" } },
-    rightPriceScale: { borderColor: "#26303c", scaleMargins: { top: 0.16, bottom: 0.1 } },
+    rightPriceScale: { borderColor: "#26303c", minimumWidth: window.innerWidth <= 600 ? 58 : 78, scaleMargins: { top: 0.16, bottom: 0.1 } },
     timeScale: { borderColor: "#26303c", visible: false },
     crosshair: { mode: LightweightCharts.CrosshairMode.Normal, vertLine: { color: "#d8e0e8aa", width: 1, style: LightweightCharts.LineStyle.Dotted }, horzLine: { color: "#d8e0e8aa", width: 1, style: LightweightCharts.LineStyle.Dotted } },
     handleScroll: false,
