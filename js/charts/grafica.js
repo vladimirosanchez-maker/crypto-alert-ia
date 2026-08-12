@@ -169,7 +169,20 @@ function programarDibujoSQZCurvo() {
   });
 }
 
-function dibujarAreaSuave(contexto, puntos, base, color) {
+function crearDegradadoTonal(contexto, puntos) {
+  const inicio = puntos[0].x;
+  const final = puntos.at(-1).x;
+  const degradado = contexto.createLinearGradient(inicio, 0, Math.max(inicio + 1, final), 0);
+  const recorrido = Math.max(1, final - inicio);
+  puntos.forEach((punto, indice) => {
+    const posicion = Math.min(1, Math.max(0, (punto.x - inicio) / recorrido));
+    const color = punto.color || (punto.valor >= 0 ? "#2ef527" : "#d90606");
+    if (indice === 0 || posicion > 0) degradado.addColorStop(posicion, color);
+  });
+  return degradado;
+}
+
+function dibujarAreaSuave(contexto, puntos, base, signo) {
   if (puntos.length < 2) return;
   contexto.beginPath();
   contexto.moveTo(puntos[0].x, base);
@@ -183,8 +196,28 @@ function dibujarAreaSuave(contexto, puntos, base, color) {
   contexto.lineTo(ultimo.x, ultimo.y);
   contexto.lineTo(ultimo.x, base);
   contexto.closePath();
-  contexto.fillStyle = color;
+  const degradado = crearDegradadoTonal(contexto, puntos);
+  contexto.save();
+  contexto.shadowColor = signo === "positivo" ? "rgba(46, 245, 39, .32)" : "rgba(217, 6, 6, .30)";
+  contexto.shadowBlur = 5;
+  contexto.shadowOffsetY = signo === "positivo" ? 2 : -2;
+  contexto.fillStyle = degradado;
   contexto.fill();
+  contexto.restore();
+  contexto.save();
+  contexto.beginPath();
+  contexto.moveTo(puntos[0].x, puntos[0].y);
+  for (let indice = 1; indice < puntos.length - 1; indice += 1) {
+    const medioX = (puntos[indice].x + puntos[indice + 1].x) / 2;
+    const medioY = (puntos[indice].y + puntos[indice + 1].y) / 2;
+    contexto.quadraticCurveTo(puntos[indice].x, puntos[indice].y, medioX, medioY);
+  }
+  contexto.lineTo(ultimo.x, ultimo.y);
+  contexto.strokeStyle = degradado;
+  contexto.lineWidth = 1;
+  contexto.globalAlpha = .72;
+  contexto.stroke();
+  contexto.restore();
 }
 
 function dibujarSQZCurvo() {
@@ -212,7 +245,7 @@ function dibujarSQZCurvo() {
     if (!barra || barra.color === "rgba(0,0,0,0)") continue;
     const x = graficaADX.timeScale().timeToCoordinate(barra.time);
     const y = histogramaTTM.priceToCoordinate(barra.value);
-    if (x !== null && y !== null) puntos.push({ x, y, valor: barra.value });
+    if (x !== null && y !== null) puntos.push({ x, y, valor: barra.value, color: barra.color });
   }
 
   const segmentos = [];
@@ -223,7 +256,7 @@ function dibujarSQZCurvo() {
     const previo = puntos[indice - 1];
     if (previo && previo.valor * punto.valor < 0) {
       const proporcion = Math.abs(previo.valor) / (Math.abs(previo.valor) + Math.abs(punto.valor));
-      const cruce = { x: previo.x + (punto.x - previo.x) * proporcion, y: base, valor: 0 };
+      const cruce = { x: previo.x + (punto.x - previo.x) * proporcion, y: base, valor: 0, color: previo.color };
       if (actual) { actual.puntos.push(cruce); segmentos.push(actual); }
       actual = null;
       ultimoCero = cruce;
@@ -239,7 +272,7 @@ function dibujarSQZCurvo() {
     ultimoCero = null;
   }
   if (actual) segmentos.push(actual);
-  segmentos.forEach((segmento) => dibujarAreaSuave(contexto, segmento.puntos, base, segmento.signo === "positivo" ? "#2ef527" : "#d90606"));
+  segmentos.forEach((segmento) => dibujarAreaSuave(contexto, segmento.puntos, base, segmento.signo));
 }
 
 function cargarValoresCursor(destino, serie, propiedad) {
