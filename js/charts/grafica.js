@@ -10,12 +10,16 @@ let detenerStreamingVelas = null;
 let recalculoTiempoRealPendiente = null;
 let consultandoVelaHistorica = false;
 let sincronizandoCursor = false;
+let repintadoHistogramaPendiente = null;
 
 const historialesEnMemoria = new Map();
 const descargasHistoricas = new Map();
 const ultimosPreciosMercado = new Map();
 const lineasAlertas = new Map();
 const valoresCursor = { velas: new Map(), sqz: new Map(), adx: new Map(), rsi: new Map() };
+const lienzoHistogramaSQZ = document.getElementById("histogramaPlanoSQZ");
+const panelADX = document.getElementById("panelADX");
+let datosHistogramaPlano = [];
 const estadoGuardado = WORKSPACE.cargar();
 const configuracionIndicadores = {
   rsi: { ...CONFIG.RSI, ...estadoGuardado?.indicadores?.rsi },
@@ -157,6 +161,48 @@ function completarHistogramaContinuo(velasBase, serie) {
   return velasBase.map((vela) => valores.get(vela.time) || { time: vela.time, value: 0, color: "rgba(0,0,0,0)" });
 }
 
+function programarDibujoHistogramaPlano() {
+  if (repintadoHistogramaPendiente) return;
+  repintadoHistogramaPendiente = requestAnimationFrame(() => {
+    repintadoHistogramaPendiente = null;
+    dibujarHistogramaPlano();
+  });
+}
+
+function dibujarHistogramaPlano() {
+  if (!lienzoHistogramaSQZ || !datosHistogramaPlano.length) return;
+  const ancho = panelADX.clientWidth;
+  const alto = graficaADX.paneSize().height;
+  const densidad = window.devicePixelRatio || 1;
+  if (lienzoHistogramaSQZ.width !== Math.round(ancho * densidad) || lienzoHistogramaSQZ.height !== Math.round(alto * densidad)) {
+    lienzoHistogramaSQZ.width = Math.round(ancho * densidad);
+    lienzoHistogramaSQZ.height = Math.round(alto * densidad);
+  }
+  lienzoHistogramaSQZ.style.height = `${alto}px`;
+  const contexto = lienzoHistogramaSQZ.getContext("2d");
+  contexto.setTransform(densidad, 0, 0, densidad, 0, 0);
+  contexto.clearRect(0, 0, ancho, alto);
+  const rango = graficaADX.timeScale().getVisibleLogicalRange();
+  const base = histogramaTTM.priceToCoordinate(0);
+  if (!rango || base === null) return;
+  const desde = Math.max(0, Math.floor(rango.from) - 2);
+  const hasta = Math.min(datosHistogramaPlano.length - 1, Math.ceil(rango.to) + 2);
+  const coordenada = (indice) => graficaADX.timeScale().timeToCoordinate(datosHistogramaPlano[indice]?.time);
+  for (let indice = desde; indice <= hasta; indice += 1) {
+    const barra = datosHistogramaPlano[indice];
+    if (!barra?.color || barra.color === "rgba(0,0,0,0)") continue;
+    const x = coordenada(indice);
+    const anterior = coordenada(Math.max(0, indice - 1));
+    const siguiente = coordenada(Math.min(datosHistogramaPlano.length - 1, indice + 1));
+    const y = histogramaTTM.priceToCoordinate(barra.value);
+    if (x === null || anterior === null || siguiente === null || y === null) continue;
+    const izquierda = Math.floor((anterior + x) / 2);
+    const derecha = Math.ceil((x + siguiente) / 2);
+    contexto.fillStyle = barra.color;
+    contexto.fillRect(izquierda, Math.min(base, y), Math.max(1, derecha - izquierda), Math.abs(base - y));
+  }
+}
+
 function cargarValoresCursor(destino, serie, propiedad) {
   valoresCursor[destino] = new Map(serie.map((punto) => [punto.time, Number(punto[propiedad])]).filter(([, valor]) => Number.isFinite(valor)));
 }
@@ -205,7 +251,8 @@ function aplicarDatosGrafica(datos, restaurarVista, conservarPosicionLogica = fa
   ema10.setData(datosEMA[0].serie); ema55.setData(datosEMA[1].serie); ema200.setData(datosEMA[2].serie);
   const datosSQZ = calcularSQZADXTTM(velasFormateadas, configuracionIndicadores.sqz);
   const histogramaContinuo = completarHistogramaContinuo(velasFormateadas, datosSQZ.histograma);
-  histogramaTTM.setData(histogramaContinuo);
+  datosHistogramaPlano = histogramaContinuo;
+  histogramaTTM.setData(histogramaContinuo.map((barra) => ({ ...barra, color: "rgba(0,0,0,0)" })));
   lineaADX.setData(completarSerieConEspacios(velasFormateadas, datosSQZ.lineaADX));
   const datosRSI = calcularRSI(velasFormateadas, configuracionIndicadores.rsi.periodo);
   rsi.setData(completarSerieConEspacios(velasFormateadas, datosRSI));
@@ -216,6 +263,7 @@ function aplicarDatosGrafica(datos, restaurarVista, conservarPosicionLogica = fa
   cargarValoresCursor("sqz", histogramaContinuo, "value");
   cargarValoresCursor("adx", datosSQZ.lineaADX, "value");
   cargarValoresCursor("rsi", datosRSI, "value");
+  programarDibujoHistogramaPlano();
   actualizarPresentacionIndicadores();
   actualizarAnalisis(velasFormateadas, datosEMA, datosSQZ, datosRSI);
   if (!consultandoVelaHistorica) actualizarCabeceraVela(velasFormateadas.at(-1));
@@ -372,7 +420,7 @@ function redimensionarGraficas() {
     const panel = document.querySelector(`[data-panel-indicador="${indicadorExpandido}"]`);
     const alto = Math.max(280, window.innerHeight - 24);
     const ancho = panel.clientWidth;
-    if (indicadorExpandido === "adx") graficaADX.applyOptions({ width: ancho, height: alto });
+    if (indicadorExpandido === "adx") { graficaADX.applyOptions({ width: ancho, height: alto }); programarDibujoHistogramaPlano(); }
     if (indicadorExpandido === "rsi") graficaRSI.applyOptions({ width: ancho, height: alto });
     return;
   }
@@ -381,6 +429,7 @@ function redimensionarGraficas() {
   grafica.applyOptions({ width: ancho, height: dimensiones.principal });
   graficaADX.applyOptions({ width: ancho, height: dimensiones.adx });
   graficaRSI.applyOptions({ width: ancho, height: dimensiones.rsi });
+  programarDibujoHistogramaPlano();
 }
 
 function activarRedimensionadores() {
@@ -580,7 +629,7 @@ function moverCursorSincronizado(origen, param) {
 }
 
 grafica.subscribeCrosshairMove((param) => moverCursorSincronizado("velas", param));
-graficaADX.subscribeCrosshairMove((param) => moverCursorSincronizado("sqz", param));
+graficaADX.subscribeCrosshairMove((param) => { moverCursorSincronizado("sqz", param); programarDibujoHistogramaPlano(); });
 graficaRSI.subscribeCrosshairMove((param) => moverCursorSincronizado("rsi", param));
 
 document.querySelectorAll(".btnPeriodo").forEach((boton) => boton.addEventListener("click", () => { guardarVista(); periodoActual = boton.dataset.periodo; primeraCarga = true; actualizarControles(); cargarVelas(); }));
@@ -592,6 +641,9 @@ document.getElementById("irVelaActual").addEventListener("click", () => {
 });
 window.addEventListener("resize", redimensionarGraficas);
 sincronizarEscalas();
+graficaADX.timeScale().subscribeVisibleLogicalRangeChange(programarDibujoHistogramaPlano);
+panelADX.addEventListener("wheel", programarDibujoHistogramaPlano, { passive: true });
+panelADX.addEventListener("pointerup", programarDibujoHistogramaPlano);
 activarRedimensionadores();
 activarControlesAlturaIndicadores();
 activarModoExpandido();

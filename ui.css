@@ -2,6 +2,7 @@
 .btn-guardar-vista:hover { background: #213457; color: #fff; }
 .btn-guardar-vista:focus-visible { outline: 2px solid #7193ff; outline-offset: 2px; }
 .panelIndicador { min-height: 110px; }
+.histograma-plano-sqz { position: absolute; z-index: 2; inset: 0; width: 100%; height: 100%; pointer-events: none; mix-blend-mode: screen; }
 .resize-indicador { position: absolute; z-index: 10; top: -4px; left: 0; width: 100%; height: 9px; cursor: ns-resize; touch-action: none; }
 .resize-indicador::after { content: ""; position: absolute; top: 3px; left: calc(50% - 20px); width: 40px; border-top: 2px solid #435064; opacity: .8; }
 .resize-indicador:hover::after, .resize-indicador:focus-visible::after { border-color: #8faeff; opacity: 1; }
