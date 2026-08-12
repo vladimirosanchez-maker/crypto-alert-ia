@@ -10,12 +10,16 @@ let detenerStreamingVelas = null;
 let recalculoTiempoRealPendiente = null;
 let consultandoVelaHistorica = false;
 let sincronizandoCursor = false;
+let repintadoSQZPendiente = null;
 
 const historialesEnMemoria = new Map();
 const descargasHistoricas = new Map();
 const ultimosPreciosMercado = new Map();
 const lineasAlertas = new Map();
 const valoresCursor = { velas: new Map(), sqz: new Map(), adx: new Map(), rsi: new Map() };
+const lienzoSQZ = document.getElementById("histogramaCurvoSQZ");
+const panelADX = document.getElementById("panelADX");
+let datosSQZCurvo = [];
 const estadoGuardado = WORKSPACE.cargar();
 const configuracionIndicadores = {
   rsi: { ...CONFIG.RSI, ...estadoGuardado?.indicadores?.rsi },
@@ -157,6 +161,87 @@ function completarHistogramaContinuo(velasBase, serie) {
   return velasBase.map((vela) => valores.get(vela.time) || { time: vela.time, value: 0, color: "rgba(0,0,0,0)" });
 }
 
+function programarDibujoSQZCurvo() {
+  if (repintadoSQZPendiente) return;
+  repintadoSQZPendiente = requestAnimationFrame(() => {
+    repintadoSQZPendiente = null;
+    dibujarSQZCurvo();
+  });
+}
+
+function dibujarAreaSuave(contexto, puntos, base, color) {
+  if (puntos.length < 2) return;
+  contexto.beginPath();
+  contexto.moveTo(puntos[0].x, base);
+  contexto.lineTo(puntos[0].x, puntos[0].y);
+  for (let indice = 1; indice < puntos.length - 1; indice += 1) {
+    const medioX = (puntos[indice].x + puntos[indice + 1].x) / 2;
+    const medioY = (puntos[indice].y + puntos[indice + 1].y) / 2;
+    contexto.quadraticCurveTo(puntos[indice].x, puntos[indice].y, medioX, medioY);
+  }
+  const ultimo = puntos.at(-1);
+  contexto.lineTo(ultimo.x, ultimo.y);
+  contexto.lineTo(ultimo.x, base);
+  contexto.closePath();
+  contexto.fillStyle = color;
+  contexto.fill();
+}
+
+function dibujarSQZCurvo() {
+  if (!lienzoSQZ || !datosSQZCurvo.length) return;
+  const ancho = panelADX.clientWidth;
+  const alto = graficaADX.paneSize().height;
+  const densidad = window.devicePixelRatio || 1;
+  if (lienzoSQZ.width !== Math.round(ancho * densidad) || lienzoSQZ.height !== Math.round(alto * densidad)) {
+    lienzoSQZ.width = Math.round(ancho * densidad);
+    lienzoSQZ.height = Math.round(alto * densidad);
+  }
+  lienzoSQZ.style.height = `${alto}px`;
+  const contexto = lienzoSQZ.getContext("2d");
+  contexto.setTransform(densidad, 0, 0, densidad, 0, 0);
+  contexto.clearRect(0, 0, ancho, alto);
+  const rango = graficaADX.timeScale().getVisibleLogicalRange();
+  const base = histogramaTTM.priceToCoordinate(0);
+  if (!rango || base === null) return;
+
+  const desde = Math.max(0, Math.floor(rango.from) - 2);
+  const hasta = Math.min(datosSQZCurvo.length - 1, Math.ceil(rango.to) + 2);
+  const puntos = [];
+  for (let indice = desde; indice <= hasta; indice += 1) {
+    const barra = datosSQZCurvo[indice];
+    if (!barra || barra.color === "rgba(0,0,0,0)") continue;
+    const x = graficaADX.timeScale().timeToCoordinate(barra.time);
+    const y = histogramaTTM.priceToCoordinate(barra.value);
+    if (x !== null && y !== null) puntos.push({ x, y, valor: barra.value });
+  }
+
+  const segmentos = [];
+  let actual = null;
+  let ultimoCero = null;
+  for (let indice = 0; indice < puntos.length; indice += 1) {
+    const punto = puntos[indice];
+    const previo = puntos[indice - 1];
+    if (previo && previo.valor * punto.valor < 0) {
+      const proporcion = Math.abs(previo.valor) / (Math.abs(previo.valor) + Math.abs(punto.valor));
+      const cruce = { x: previo.x + (punto.x - previo.x) * proporcion, y: base, valor: 0 };
+      if (actual) { actual.puntos.push(cruce); segmentos.push(actual); }
+      actual = null;
+      ultimoCero = cruce;
+    }
+    if (punto.valor === 0) {
+      if (actual) { actual.puntos.push({ ...punto, y: base }); segmentos.push(actual); actual = null; }
+      ultimoCero = { ...punto, y: base };
+      continue;
+    }
+    const signo = punto.valor > 0 ? "positivo" : "negativo";
+    if (!actual) actual = { signo, puntos: ultimoCero ? [ultimoCero, punto] : [punto] };
+    else actual.puntos.push(punto);
+    ultimoCero = null;
+  }
+  if (actual) segmentos.push(actual);
+  segmentos.forEach((segmento) => dibujarAreaSuave(contexto, segmento.puntos, base, segmento.signo === "positivo" ? "#2ef527" : "#d90606"));
+}
+
 function cargarValoresCursor(destino, serie, propiedad) {
   valoresCursor[destino] = new Map(serie.map((punto) => [punto.time, Number(punto[propiedad])]).filter(([, valor]) => Number.isFinite(valor)));
 }
@@ -205,7 +290,8 @@ function aplicarDatosGrafica(datos, restaurarVista, conservarPosicionLogica = fa
   ema10.setData(datosEMA[0].serie); ema55.setData(datosEMA[1].serie); ema200.setData(datosEMA[2].serie);
   const datosSQZ = calcularSQZADXTTM(velasFormateadas, configuracionIndicadores.sqz);
   const histogramaContinuo = completarHistogramaContinuo(velasFormateadas, datosSQZ.histograma);
-  histogramaTTM.setData(histogramaContinuo);
+  datosSQZCurvo = histogramaContinuo;
+  histogramaTTM.setData(histogramaContinuo.map((barra) => ({ ...barra, color: "rgba(0,0,0,0)" })));
   lineaADX.setData(completarSerieConEspacios(velasFormateadas, datosSQZ.lineaADX));
   const datosRSI = calcularRSI(velasFormateadas, configuracionIndicadores.rsi.periodo);
   rsi.setData(completarSerieConEspacios(velasFormateadas, datosRSI));
@@ -216,6 +302,7 @@ function aplicarDatosGrafica(datos, restaurarVista, conservarPosicionLogica = fa
   cargarValoresCursor("sqz", histogramaContinuo, "value");
   cargarValoresCursor("adx", datosSQZ.lineaADX, "value");
   cargarValoresCursor("rsi", datosRSI, "value");
+  programarDibujoSQZCurvo();
   actualizarPresentacionIndicadores();
   actualizarAnalisis(velasFormateadas, datosEMA, datosSQZ, datosRSI);
   if (!consultandoVelaHistorica) actualizarCabeceraVela(velasFormateadas.at(-1));
@@ -372,7 +459,7 @@ function redimensionarGraficas() {
     const panel = document.querySelector(`[data-panel-indicador="${indicadorExpandido}"]`);
     const alto = Math.max(280, window.innerHeight - 24);
     const ancho = panel.clientWidth;
-    if (indicadorExpandido === "adx") graficaADX.applyOptions({ width: ancho, height: alto });
+    if (indicadorExpandido === "adx") { graficaADX.applyOptions({ width: ancho, height: alto }); programarDibujoSQZCurvo(); }
     if (indicadorExpandido === "rsi") graficaRSI.applyOptions({ width: ancho, height: alto });
     return;
   }
@@ -381,6 +468,7 @@ function redimensionarGraficas() {
   grafica.applyOptions({ width: ancho, height: dimensiones.principal });
   graficaADX.applyOptions({ width: ancho, height: dimensiones.adx });
   graficaRSI.applyOptions({ width: ancho, height: dimensiones.rsi });
+  programarDibujoSQZCurvo();
 }
 
 function activarRedimensionadores() {
@@ -580,7 +668,7 @@ function moverCursorSincronizado(origen, param) {
 }
 
 grafica.subscribeCrosshairMove((param) => moverCursorSincronizado("velas", param));
-graficaADX.subscribeCrosshairMove((param) => moverCursorSincronizado("sqz", param));
+graficaADX.subscribeCrosshairMove((param) => { moverCursorSincronizado("sqz", param); programarDibujoSQZCurvo(); });
 graficaRSI.subscribeCrosshairMove((param) => moverCursorSincronizado("rsi", param));
 
 document.querySelectorAll(".btnPeriodo").forEach((boton) => boton.addEventListener("click", () => { guardarVista(); periodoActual = boton.dataset.periodo; primeraCarga = true; actualizarControles(); cargarVelas(); }));
@@ -592,6 +680,9 @@ document.getElementById("irVelaActual").addEventListener("click", () => {
 });
 window.addEventListener("resize", redimensionarGraficas);
 sincronizarEscalas();
+graficaADX.timeScale().subscribeVisibleLogicalRangeChange(programarDibujoSQZCurvo);
+panelADX.addEventListener("wheel", programarDibujoSQZCurvo, { passive: true });
+panelADX.addEventListener("pointermove", programarDibujoSQZCurvo);
 activarRedimensionadores();
 activarControlesAlturaIndicadores();
 activarModoExpandido();
