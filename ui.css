@@ -97,3 +97,19 @@
 .analisis-ciclo p { margin: 6px 0 0; color: #c8c0a8; font-size: 10px; line-height: 1.45; }
 .analisis-ciclo small { display: block; margin-top: 7px; color: #837c6a; font-size: 9px; line-height: 1.4; }
 .analisis-ciclo a { color: #d4ad54; }
+
+.ia-score b { color: #8ab4f8; font-weight: 700; }
+.marcos-ia { padding: 9px 10px; border: 1px solid #263848; border-radius: 6px; background: #0d1218; }
+.marcos-ia > div { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.marcos-ia [data-marco-ia] { padding: 6px 2px; border: 1px solid #273443; border-radius: 4px; color: #8290a0; text-align: center; font-size: 10px; font-weight: 700; }
+.marcos-ia [data-marco-ia].activo { border-color: #3d68c8; background: #20345d; color: #b9ceff; }
+.marcos-ia small { display: block; margin-top: 7px; color: #718092; font-size: 9px; line-height: 1.35; }
+.metricas-macro { border: 1px solid #3b3423; border-radius: 6px; background: #18150e; }
+.metricas-macro summary { padding: 10px; color: #e0c475; cursor: pointer; font-size: 11px; font-weight: 700; }
+.metricas-macro > p { margin: 0; padding: 0 10px 8px; color: #958b70; font-size: 9px; line-height: 1.4; }
+.metricas-macro ul { display: grid; gap: 1px; margin: 0; padding: 0 8px 8px; list-style: none; }
+.metricas-macro li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 7px; padding: 6px; background: #11130f; font-size: 9px; }
+.metricas-macro li span { color: #b9b29e; }
+.metricas-macro li b { color: #e3e8ee; font-variant-numeric: tabular-nums; }
+.metricas-macro li em { grid-column: 1 / -1; color: #e1b34e; font-style: normal; text-transform: uppercase; }
+.metricas-macro li em.alcanzado { color: #55c69a; }

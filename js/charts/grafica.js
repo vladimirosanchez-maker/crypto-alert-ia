@@ -290,6 +290,11 @@ function actualizarAnalisis(velasFormateadas, datosEMA, datosSQZ, datosRSI) {
     temporalidad: periodoActual
   });
   const estado = document.getElementById("estadoIA");
+  const etiquetasMarco = { "1h": "1H", "4h": "4H", "1d": "Diaria", "1w": "Semanal" };
+  const etiquetaMarco = etiquetasMarco[periodoActual] || periodoActual.toUpperCase();
+  document.getElementById("temporalidadIA").textContent = etiquetaMarco;
+  document.getElementById("marcoActivoIA").textContent = etiquetaMarco;
+  document.querySelectorAll("[data-marco-ia]").forEach((elemento) => elemento.classList.toggle("activo", elemento.dataset.marcoIa === periodoActual));
   estado.textContent = analisis.estado;
   estado.style.color = analisis.color;
   document.getElementById("scoreIA").textContent = `${analisis.score}/100`;

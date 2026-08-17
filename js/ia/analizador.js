@@ -96,7 +96,16 @@ function obtenerAnalisisTemporal(velas, indicadores) {
   if (Number.isFinite(volumenRelativo) && volumenRelativo >= 1.2 && movimiento !== 0) agregar(Math.sign(movimiento), `volumen ${volumenRelativo.toFixed(2)}× confirma la vela actual`);
   else if (Number.isFinite(volumenRelativo) && volumenRelativo < 0.8) razones.push(`volumen ${volumenRelativo.toFixed(2)}×: movimiento sin confirmación`);
 
-  const maxEvidencia = 10;
+  // La referencia macro aportada alcanza 3 de 8 señales cuantificadas y otras
+  // cinco están próximas. Se usa como viento de fondo moderadamente alcista,
+  // nunca como sustituto de la estructura técnica del marco activo.
+  const marcosMacro = ["1d", "1w"];
+  const ajusteMacro = marcosMacro.includes(temporalidad) ? 0.75 : 0.25;
+  sesgo += ajusteMacro;
+  evidencia += ajusteMacro;
+  razones.push("contexto macro/on-chain de capitulación avanzada favorece recuperación, aún sin confirmar fondo");
+
+  const maxEvidencia = 10.75;
   const sesgoNormalizado = Math.max(-1, Math.min(1, sesgo / maxEvidencia));
   const probabilidadAlcista = Math.round(50 + sesgoNormalizado * 35);
   const probabilidadBajista = 100 - probabilidadAlcista;
@@ -110,14 +119,16 @@ function obtenerAnalisisTemporal(velas, indicadores) {
   const recorrido = Number.isFinite(atr) ? atr * Math.sqrt(horizonte) : precioActual * 0.01;
   const objetivoAlcista = precioActual + recorrido;
   const objetivoBajista = Math.max(0, precioActual - recorrido);
-  const bloque = contexto.datos.slice(0, -1);
+  const ventanasEstructura = { "1h": 48, "4h": 42, "1d": 30, "1w": 20 };
+  const bloque = contexto.datos.slice(-(ventanasEstructura[temporalidad] || 40) - 1, -1);
   const resistencia = Math.max(...bloque.map((vela) => vela.high));
   const soporte = Math.min(...bloque.map((vela) => vela.low));
   const precio = (valor) => Number(valor).toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const nivelesTecnicos = `Si sube: ${precio(objetivoAlcista)} · Si baja: ${precio(objetivoBajista)} · Rango del contexto: ${precio(soporte)}–${precio(resistencia)}`;
+  const nivelesTecnicos = `Soporte ${precio(soporte)} · Resistencia ${precio(resistencia)} · Proyección ATR ${precio(objetivoBajista)}–${precio(objetivoAlcista)}`;
   const coberturaDatos = contexto.completo ? `${contexto.diasCubiertos.toFixed(0)} días` : `${contexto.diasCubiertos.toFixed(0)} días (cargando mínimo de ${CONFIG.DIAS_CONTEXTO_ANALISIS})`;
   const modelo = `Contexto ${coberturaDatos} · EMA10 ${precio(ema10)} · EMA55 ${precio(ema55)} · EMA200 ${precio(ema200)} · RSI ${Number.isFinite(valorRSI) ? valorRSI.toFixed(1) : "--"} · ADX ${Number.isFinite(adx) ? adx.toFixed(1) : "--"} · Vol. ${Number.isFinite(volumenRelativo) ? `${volumenRelativo.toFixed(2)}×` : "--"}`;
-  const resumen = `${sesgo > 2 ? "Ventaja alcista" : sesgo < -2 ? "Ventaja bajista" : "Sin ventaja clara"} en ${temporalidad}: ${razones.slice(0, 4).join("; ")}.`;
+  const nombresMarco = { "1h": "1H", "4h": "4H", "1d": "diaria", "1w": "semanal" };
+  const resumen = `${sesgo > 2 ? "Tendencia alcista" : sesgo < -2 ? "Tendencia bajista" : "Tendencia lateral / transición"} en ${nombresMarco[temporalidad] || temporalidad}: ${razones.slice(0, 4).join("; ")}.`;
   const condicion = `Proyección ATR para las próximas ${horizonte} velas, no precio garantizado. Confirmación alcista sobre ${precio(resistencia)}; confirmación bajista bajo ${precio(soporte)}.`;
   const base = { score, probabilidadAlcista, probabilidadBajista, confianza, condicion, modelo, nivelesTecnicos, resumen };
   if (sesgo > 2) return { ...base, estado: "Alcista", color: "#26a69a" };
