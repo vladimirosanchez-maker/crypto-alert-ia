@@ -38,7 +38,7 @@ function obtenerAnalisisTemporal(velas, indicadores) {
   const { ema10, ema55, ema200, rsi, sqz, ajustesSQZ, temporalidad = "15m" } = indicadores;
   const ultima = velas.at(-1);
   if (!ultima || ![ema10, ema55, ema200].every(Number.isFinite)) {
-    return { estado: "Incertidumbre", color: "#d7a93e", score: 0, probabilidadAlcista: 50, probabilidadBajista: 50, confianza: "Baja", condicion: "Faltan datos para validar un escenario.", modelo: "Confluencia técnica pendiente.", nivelesTecnicos: "Objetivos alcista/bajista: --", resumen: "Aún no hay suficientes velas para completar este marco temporal." };
+    return { estado: "Incertidumbre", color: "#d7a93e", score: 0, probabilidadAlcista: 50, probabilidadBajista: 50, confianza: "Baja", condicion: "Faltan datos para validar un escenario.", modelo: "Confluencia técnica pendiente.", nivelesTecnicos: "Soporte y resistencia: --", explicacionTendencia: "No hay suficientes velas para clasificar la dirección con fiabilidad.", explicacionNiveles: "ATR (Average True Range) mide el recorrido medio y la volatilidad; no predice por sí solo si el precio subirá o bajará.", resumen: "Aún no hay suficientes velas para completar este marco temporal." };
   }
 
   let sesgo = 0;
@@ -130,7 +130,9 @@ function obtenerAnalisisTemporal(velas, indicadores) {
   const nombresMarco = { "1h": "1H", "4h": "4H", "1d": "diaria", "1w": "semanal" };
   const resumen = `${sesgo > 2 ? "Tendencia alcista" : sesgo < -2 ? "Tendencia bajista" : "Tendencia lateral / transición"} en ${nombresMarco[temporalidad] || temporalidad}: ${razones.slice(0, 4).join("; ")}.`;
   const condicion = `Proyección ATR para las próximas ${horizonte} velas, no precio garantizado. Confirmación alcista sobre ${precio(resistencia)}; confirmación bajista bajo ${precio(soporte)}.`;
-  const base = { score, probabilidadAlcista, probabilidadBajista, confianza, condicion, modelo, nivelesTecnicos, resumen };
+  const explicacionTendencia = `La clasificación combina estructura de precio y EMA, momentum RSI/SQZ, dirección DMI, fuerza ADX y confirmación por volumen. El contexto on-chain aporta ${marcosMacro.includes(temporalidad) ? "peso moderado" : "peso reducido"} en este marco; el score mide fuerza de confluencia, no probabilidad de acierto.`;
+  const explicacionNiveles = `Soporte: mínimo relevante de las últimas ${bloque.length} velas. Resistencia: máximo equivalente. ATR es el rango verdadero medio de 14 velas; la banda mostrada estima volatilidad para ${horizonte} velas, no una dirección ni un objetivo garantizado.`;
+  const base = { score, probabilidadAlcista, probabilidadBajista, confianza, condicion, modelo, nivelesTecnicos, explicacionTendencia, explicacionNiveles, resumen };
   if (sesgo > 2) return { ...base, estado: "Alcista", color: "#26a69a" };
   if (sesgo < -2) return { ...base, estado: "Bajista", color: "#ef5350" };
   return { ...base, estado: "Neutral", color: "#d7a93e" };
