@@ -317,6 +317,58 @@ function actualizarAnalisis(velasFormateadas, datosEMA, datosSQZ, datosRSI) {
   document.getElementById("condicionTemporal").textContent = `Confianza ${analisis.confianza}. ${analisis.condicion}`;
 }
 
+function actualizarOperativaIA(velasFormateadas, datosEMA, datosSQZ, datosRSI) {
+  const resultado = evaluarSenalesOperativas(velasFormateadas, {
+    temporalidad: periodoActual,
+    ema10: datosEMA[0], ema55: datosEMA[1], ema200: datosEMA[2],
+    rsi: datosRSI, sqz: datosSQZ, ajustesSQZ: configuracionIndicadores.sqz
+  });
+  velas.setMarkers(crearMarcadoresOperativos(resultado));
+
+  const estado = document.getElementById("estadoOperacionIA");
+  const resumen = document.getElementById("resumenOperacionIA");
+  const detalle = document.getElementById("detalleOperacionIA");
+  const zonaLong = document.getElementById("zonaLongIA");
+  const zonaShort = document.getElementById("zonaShortIA");
+  if (!resultado.habilitado) {
+    estado.textContent = "Marco no operativo";
+    estado.className = "neutral";
+    resumen.textContent = "Selecciona 15m, 1H, 4H, diaria o semanal para generar señales confirmadas.";
+    detalle.hidden = true;
+    zonaLong.textContent = "--";
+    zonaShort.textContent = "--";
+    return;
+  }
+  if (!resultado.zonas) {
+    estado.textContent = "Historial insuficiente";
+    estado.className = "neutral";
+    resumen.textContent = "Se necesitan al menos 233 velas y una vela cerrada para evaluar la confluencia.";
+    detalle.hidden = true;
+    return;
+  }
+
+  zonaLong.textContent = `${precioSenal(resultado.zonas.long.desde)}–${precioSenal(resultado.zonas.long.hasta)}`;
+  zonaShort.textContent = `${precioSenal(resultado.zonas.short.desde)}–${precioSenal(resultado.zonas.short.hasta)}`;
+  const senal = resultado.vigente;
+  if (!senal) {
+    estado.textContent = "Esperando confirmación";
+    estado.className = "neutral";
+    resumen.textContent = `${resultado.senales.length} señales históricas detectadas. No hay entrada vigente: espera cierre fuera de la zona con EMA, RSI, SQZ, DMI/ADX y volumen alineados.`;
+    detalle.hidden = true;
+    return;
+  }
+
+  estado.textContent = `${senal.tipo} confirmado`;
+  estado.className = senal.tipo === "LONG" ? "long" : "short";
+  resumen.textContent = "Señal reciente confirmada al cierre. No perseguir el precio fuera de la zona de entrada.";
+  detalle.hidden = false;
+  document.getElementById("entradaOperacionIA").textContent = `${precioSenal(senal.entradaDesde)}–${precioSenal(senal.entradaHasta)}`;
+  document.getElementById("stopOperacionIA").textContent = precioSenal(senal.stop);
+  document.getElementById("tp1OperacionIA").textContent = `${precioSenal(senal.tp1)} · 1:${senal.rr1}`;
+  document.getElementById("tp2OperacionIA").textContent = `${precioSenal(senal.tp2)} · 1:${senal.rr2}`;
+  document.getElementById("razonesOperacionIA").textContent = senal.razones.join(" · ");
+}
+
 function restaurarVistaInicial(datos) {
   const rango = normalizarRangoVisible(obtenerRangoGuardado());
   const primero = datos[0][0] / 1000;
@@ -352,6 +404,7 @@ function aplicarDatosGrafica(datos, restaurarVista, conservarPosicionLogica = fa
   programarDibujoSQZCurvo();
   actualizarPresentacionIndicadores();
   actualizarAnalisis(velasFormateadas, datosEMA, datosSQZ, datosRSI);
+  actualizarOperativaIA(velasFormateadas, datosEMA, datosSQZ, datosRSI);
   if (!consultandoVelaHistorica) actualizarCabeceraVela(velasFormateadas.at(-1));
   if (restaurarVista) restaurarVistaInicial(datos);
   else if (rangoAnterior) {

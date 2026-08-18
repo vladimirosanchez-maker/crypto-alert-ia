@@ -107,17 +107,40 @@
 .marcos-ia [data-marco-ia].activo { border-color: #3d68c8; background: #20345d; color: #b9ceff; }
 .marcos-ia small { display: block; margin-top: 7px; color: #718092; font-size: 9px; line-height: 1.35; }
 .metricas-macro { border: 1px solid #3b3423; border-radius: 6px; background: #18150e; }
-.metricas-macro summary { padding: 10px; color: #e0c475; cursor: pointer; font-size: 11px; font-weight: 700; }
-.metricas-macro > p { margin: 0; padding: 0 10px 8px; color: #958b70; font-size: 9px; line-height: 1.4; }
-.metricas-macro .contexto-onchain { margin: 0 8px 8px; padding: 7px; border-left: 2px solid #d7a93e; background: #211d11; color: #d1c49d; }
-.metricas-macro ul { display: grid; gap: 1px; margin: 0; padding: 0 8px 8px; list-style: none; }
-.metricas-macro li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 7px; padding: 6px; background: #11130f; font-size: 9px; }
-.metricas-macro li span { color: #b9b29e; }
+.metricas-macro summary { padding: 12px; color: #f0d47f; cursor: pointer; font-size: 12px; font-weight: 750; line-height: 1.35; }
+.metricas-macro > p { margin: 0; padding: 0 12px 10px; color: #b3aa91; font-size: 10.5px; line-height: 1.55; }
+.metricas-macro .contexto-onchain { margin: 0 10px 10px; padding: 9px; border-left: 3px solid #d7a93e; background: #211d11; color: #ded1a9; font-size: 10.5px; line-height: 1.55; }
+.metricas-macro ul { display: grid; gap: 4px; margin: 0; padding: 0 9px 10px; list-style: none; }
+.metricas-macro li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 5px 8px; padding: 9px 8px; background: #11130f; font-size: 10.5px; line-height: 1.45; }
+.metricas-macro li span { color: #d0c9b5; font-weight: 650; }
 .metricas-macro li b { color: #e3e8ee; font-variant-numeric: tabular-nums; }
 .metricas-macro li em { grid-column: 1 / -1; color: #e1b34e; font-style: normal; text-transform: uppercase; }
-.metricas-macro li small { grid-column: 1 / -1; color: #8f958d; font-size: 9px; line-height: 1.4; }
-.metricas-macro li small + small { padding-top: 4px; border-top: 1px solid #25271f; color: #a8ad9f; }
+.metricas-macro li small { grid-column: 1 / -1; color: #b4bab1; font-size: 10.5px; line-height: 1.55; }
+.metricas-macro li small + small { padding-top: 6px; border-top: 1px solid #303329; color: #c2c7ba; }
 .metricas-macro li small strong { color: #d3d8ce; }
 .metricas-macro li em.sesgo-alcista { color: #55c69a; }
 .metricas-macro li em.sesgo-bajista { color: #f38b79; }
 .metricas-macro li em.sesgo-lateral { color: #e1b34e; }
+
+.operativa-ia { padding: 10px; border: 1px solid #30445a; border-radius: 6px; background: #0c141c; }
+.operativa-cabecera { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.operativa-cabecera .state-label { margin: 0; }
+.operativa-cabecera strong { font-size: 11px; text-align: right; }
+.operativa-cabecera strong.long { color: #39c89d; }
+.operativa-cabecera strong.short { color: #f17169; }
+.operativa-cabecera strong.neutral { color: #d7a93e; }
+.operativa-ia > p { margin: 7px 0 0; color: #a8b6c5; font-size: 10px; line-height: 1.45; }
+.detalle-operacion { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 9px; }
+.detalle-operacion[hidden] { display: none; }
+.detalle-operacion > div { padding: 7px; border: 1px solid #293746; border-radius: 4px; background: #101a24; }
+.detalle-operacion span, .zonas-espera span { display: block; color: #8292a3; font-size: 9px; }
+.detalle-operacion b, .zonas-espera b { display: block; margin-top: 3px; color: #e4eaf0; font-family: Consolas, ui-monospace, monospace; font-size: 10px; font-variant-numeric: tabular-nums; }
+.detalle-operacion p { grid-column: 1 / -1; margin: 2px 0 0; padding: 7px; border-left: 2px solid #6e89a6; color: #aab8c6; background: #101820; font-size: 9px; line-height: 1.45; }
+.zonas-espera { display: grid; gap: 6px; margin-top: 9px; }
+.zonas-espera > div { padding: 8px; border-radius: 4px; }
+.zonas-espera .zona-long { border: 1px solid #245c4d; background: #0c211c; }
+.zonas-espera .zona-short { border: 1px solid #663b3b; background: #251313; }
+.zona-long b { color: #4fd6a7; }
+.zona-short b { color: #f1847e; }
+.zonas-espera small { display: block; margin-top: 4px; color: #829087; font-size: 9px; line-height: 1.35; }
+.operativa-ia .aviso-operativo { display: block; margin-top: 8px; color: #758595; font-size: 9px; line-height: 1.4; }
