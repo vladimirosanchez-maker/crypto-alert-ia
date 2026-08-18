@@ -30,6 +30,28 @@ function rangoPrevio(velas, indice, periodo) {
   };
 }
 
+function nivelEstructuralCercano(velas, indice, precio, atr, emas, tipo, periodo = 80) {
+  const esSoporte = tipo === "soporte";
+  const desde = Math.max(2, indice - periodo);
+  const candidatos = [];
+  for (let posicion = desde; posicion <= indice - 3; posicion += 1) {
+    const vela = velas[posicion];
+    const vecinos = velas.slice(posicion - 2, posicion + 3);
+    const esPivote = esSoporte ? vecinos.every((dato) => vela.low <= dato.low) : vecinos.every((dato) => vela.high >= dato.high);
+    const nivel = esSoporte ? vela.low : vela.high;
+    if (esPivote && (esSoporte ? nivel < precio : nivel > precio)) candidatos.push({ precio: nivel, origen: "pivote" });
+  }
+  emas.filter(Number.isFinite).filter((nivel) => esSoporte ? nivel < precio : nivel > precio).forEach((nivel) => candidatos.push({ precio: nivel, origen: "EMA" }));
+  const tolerancia = atr * 0.25;
+  const bloque = velas.slice(desde, indice);
+  return candidatos.map((candidato) => {
+    const reacciones = bloque.filter((vela) => esSoporte ? Math.abs(vela.low - candidato.precio) <= tolerancia : Math.abs(vela.high - candidato.precio) <= tolerancia).length;
+    const distanciaATR = Math.abs(precio - candidato.precio) / atr;
+    const puntuacion = distanciaATR - Math.min(reacciones, 5) * 0.2 - (candidato.origen === "EMA" ? 0.1 : 0);
+    return { ...candidato, reacciones, distanciaATR, puntuacion };
+  }).filter((candidato) => candidato.distanciaATR <= 8).sort((a, b) => a.puntuacion - b.puntuacion)[0] || null;
+}
+
 function precioSenal(valor) {
   return Number(valor).toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
@@ -149,8 +171,10 @@ function evaluarSenalesOperativas(velas, opciones) {
     const tendenciaAlcista = vela.close > e200 && e10 > e55 && e55 > e200;
     const tendenciaBajista = vela.close < e200 && e10 < e55 && e55 < e200;
     const tolerancia = atr[indice] * 0.35;
-    const tocaZonaLong = vela.low <= e10 + tolerancia && vela.low >= Math.min(rango.minimo, e55) - tolerancia;
-    const tocaZonaShort = vela.high >= e10 - tolerancia && vela.high <= Math.max(rango.maximo, e55) + tolerancia;
+    const soporteCercano = nivelEstructuralCercano(velas, indice, anterior.close, atr[indice], [e10, e55, e200], "soporte", estructura * 4);
+    const resistenciaCercana = nivelEstructuralCercano(velas, indice, anterior.close, atr[indice], [e10, e55, e200], "resistencia", estructura * 4);
+    const tocaZonaLong = soporteCercano && vela.low <= soporteCercano.precio + tolerancia && vela.close >= soporteCercano.precio - atr[indice] * 0.1;
+    const tocaZonaShort = resistenciaCercana && vela.high >= resistenciaCercana.precio - tolerancia && vela.close <= resistenciaCercana.precio + atr[indice] * 0.1;
     const amplitudRango = Math.max(rango.maximo - rango.minimo, atr[indice]);
     const posicionRango = (vela.close - rango.minimo) / amplitudRango;
     const precioLongFavorable = posicionRango <= 0.65 && vela.close < rango.maximo - atr[indice] * 0.15;
@@ -187,8 +211,8 @@ function evaluarSenalesOperativas(velas, opciones) {
 
     if (!setupPendiente && indice - ultimoIndice >= enfriamiento && (setupLong || setupShort)) {
       const tipo = setupLong ? "LONG" : "SHORT";
-      const precioBase = tipo === "LONG" ? Math.max(rango.minimo, e55) : Math.min(rango.maximo, e55);
-      setupPendiente = { tipo, indice, tiempo: vela.time, precio: precioBase, extremo: tipo === "LONG" ? vela.low : vela.high, minimo: vela.low, maximo: vela.high, expira: indice + 4, atr: atr[indice] };
+      const nivel = tipo === "LONG" ? soporteCercano : resistenciaCercana;
+      setupPendiente = { tipo, indice, tiempo: vela.time, precio: nivel.precio, nivelOrigen: nivel.origen, reacciones: nivel.reacciones, extremo: tipo === "LONG" ? vela.low : vela.high, minimo: vela.low, maximo: vela.high, expira: indice + 4, atr: atr[indice] };
     }
   }
 
@@ -201,10 +225,10 @@ function evaluarSenalesOperativas(velas, opciones) {
   const e200 = ema200Map.get(ultima.time);
   const tendenciaAlcista = ultima.close > e200 && e10 > e55 && e55 > e200;
   const tendenciaBajista = ultima.close < e200 && e10 < e55 && e55 < e200;
-  const precioLong = Math.max(rango.minimo, e55);
-  const precioShort = Math.min(rango.maximo, e55);
-  const zonaLong = Number.isFinite(atrActual) ? { central: precioLong, desde: precioLong - atrActual * 0.25, hasta: precioLong + atrActual * 0.25 } : null;
-  const zonaShort = Number.isFinite(atrActual) ? { central: precioShort, desde: precioShort - atrActual * 0.25, hasta: precioShort + atrActual * 0.25 } : null;
+  const soporteActual = nivelEstructuralCercano(velas, indice, ultima.close, atrActual, [e10, e55, e200], "soporte", estructura * 4) || { precio: rango.minimo, origen: "mínimo reciente", reacciones: 1 };
+  const resistenciaActual = nivelEstructuralCercano(velas, indice, ultima.close, atrActual, [e10, e55, e200], "resistencia", estructura * 4) || { precio: rango.maximo, origen: "máximo reciente", reacciones: 1 };
+  const zonaLong = Number.isFinite(atrActual) ? { central: soporteActual.precio, desde: soporteActual.precio - atrActual * 0.25, hasta: soporteActual.precio + atrActual * 0.25, origen: soporteActual.origen, reacciones: soporteActual.reacciones } : null;
+  const zonaShort = Number.isFinite(atrActual) ? { central: resistenciaActual.precio, desde: resistenciaActual.precio - atrActual * 0.25, hasta: resistenciaActual.precio + atrActual * 0.25, origen: resistenciaActual.origen, reacciones: resistenciaActual.reacciones } : null;
   const valorRSI = rsiMap.get(ultima.time);
   const rsiAnterior = rsiMap.get(velas[indice - 1].time);
   const momentum = momentumMap.get(ultima.time);
@@ -220,7 +244,7 @@ function evaluarSenalesOperativas(velas, opciones) {
 }
 
 function crearMarcadoresOperativos(resultado) {
-  const setups = (resultado.setups || []).map((setup) => ({ time: setup.tiempo, position: setup.tipo === "LONG" ? "belowBar" : "aboveBar", color: setup.tipo === "LONG" ? "#55d6aa" : "#f1847e", shape: "circle", text: `Zona ${setup.tipo === "LONG" ? "L" : "S"} ${precioSenal(setup.precio)}` }));
-  const confirmaciones = resultado.senales.map((senal) => ({ time: senal.tiempo, position: senal.tipo === "LONG" ? "belowBar" : "aboveBar", color: senal.tipo === "LONG" ? "#18c98b" : "#ef5350", shape: senal.tipo === "LONG" ? "arrowUp" : "arrowDown", text: `${senal.tipo} ${precioSenal(senal.precio)}` }));
+  const setups = (resultado.setups || []).map((setup) => ({ time: setup.tiempo, position: setup.tipo === "LONG" ? "belowBar" : "aboveBar", color: setup.tipo === "LONG" ? "#55d6aa" : "#f1847e", shape: "circle", text: "" }));
+  const confirmaciones = resultado.senales.map((senal) => ({ time: senal.tiempo, position: senal.tipo === "LONG" ? "belowBar" : "aboveBar", color: senal.tipo === "LONG" ? "#18c98b" : "#ef5350", shape: senal.tipo === "LONG" ? "arrowUp" : "arrowDown", text: senal.tipo }));
   return [...setups, ...confirmaciones].sort((a, b) => a.time - b.time);
 }

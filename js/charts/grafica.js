@@ -370,7 +370,7 @@ function actualizarOperativaIA(velasFormateadas, datosEMA, datosSQZ, datosRSI) {
     resumen.textContent = `Compra probable cerca de ${precioSenal(resultado.zonas.long.central)}; tolerancia ±0,25 ATR. La entrada sólo se confirma con una vela de rechazo cerrada.`;
     etiquetaLong.textContent = "Precio central probable LONG";
     zonaLong.textContent = `${precioSenal(resultado.zonas.long.central)} · zona ${precioSenal(resultado.zonas.long.desde)}–${precioSenal(resultado.zonas.long.hasta)}`;
-    document.getElementById("condicionLongIA").textContent = resultado.oportunidad.setupPendiente ? "Precio dentro del setup: falta flecha de confirmación al cierre." : "Esperar retroceso hacia esta zona; no comprar arriba.";
+    document.getElementById("condicionLongIA").textContent = resultado.oportunidad.setupPendiente ? "Precio dentro del setup: falta flecha de confirmación al cierre." : `Soporte más cercano: ${resultado.zonas.long.origen}, ${resultado.zonas.long.reacciones} reacciones. Esperar retroceso; no comprar arriba.`;
     etiquetaShort.textContent = "SHORT no permitido";
     zonaShort.textContent = "Contra la tendencia actual";
     document.getElementById("condicionShortIA").textContent = "No vender mientras la estructura permanezca alcista.";
@@ -383,7 +383,7 @@ function actualizarOperativaIA(velasFormateadas, datosEMA, datosSQZ, datosRSI) {
     document.getElementById("condicionLongIA").textContent = "No comprar mientras la estructura permanezca bajista.";
     etiquetaShort.textContent = "Precio central probable SHORT";
     zonaShort.textContent = `${precioSenal(resultado.zonas.short.central)} · zona ${precioSenal(resultado.zonas.short.desde)}–${precioSenal(resultado.zonas.short.hasta)}`;
-    document.getElementById("condicionShortIA").textContent = resultado.oportunidad.setupPendiente ? "Precio dentro del setup: falta flecha de confirmación al cierre." : "Esperar rebote hacia esta zona; no vender abajo.";
+    document.getElementById("condicionShortIA").textContent = resultado.oportunidad.setupPendiente ? "Precio dentro del setup: falta flecha de confirmación al cierre." : `Resistencia más cercana: ${resultado.zonas.short.origen}, ${resultado.zonas.short.reacciones} reacciones. Esperar rebote; no vender abajo.`;
   } else {
     estado.textContent = "NO OPERAR";
     estado.className = "no-operar";
