@@ -144,3 +144,15 @@
 .zona-short b { color: #f1847e; }
 .zonas-espera small { display: block; margin-top: 4px; color: #829087; font-size: 9px; line-height: 1.35; }
 .operativa-ia .aviso-operativo { display: block; margin-top: 8px; color: #758595; font-size: 9px; line-height: 1.4; }
+.proyeccion-extremos { margin-top: 10px; padding-top: 9px; border-top: 1px solid #293746; }
+.proyeccion-extremos > div { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.proyeccion-extremos article { padding: 8px; border-radius: 4px; background: #101820; }
+.proyeccion-extremos .proyeccion-subida { border: 1px solid #245c4d; }
+.proyeccion-extremos .proyeccion-caida { border: 1px solid #663b3b; }
+.proyeccion-extremos article span, .proyeccion-extremos article small { display: block; color: #8c9bab; font-size: 9px; line-height: 1.35; }
+.proyeccion-extremos article b { display: block; margin-top: 4px; color: #e1e8ef; font-family: Consolas, ui-monospace, monospace; font-size: 9px; }
+.proyeccion-extremos article em { display: block; margin: 5px 0 3px; font-size: 9px; font-style: normal; font-weight: 700; }
+.proyeccion-extremos article em.alta { color: #4fd6a7; }
+.proyeccion-extremos article em.media { color: #e0bd55; }
+.proyeccion-extremos article em.baja { color: #f1847e; }
+.proyeccion-extremos > small { display: block; margin-top: 7px; color: #758595; font-size: 9px; line-height: 1.4; }

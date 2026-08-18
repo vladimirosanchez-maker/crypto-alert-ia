@@ -47,7 +47,8 @@ function obtenerInicioContextoAnalisis(intervalo) {
   const intervaloMs = milisegundosIntervalo(intervalo);
   const duracionCalendario = CONFIG.DIAS_CONTEXTO_ANALISIS * 86400000;
   const duracionIndicadores = CONFIG.VELAS_MINIMAS_ANALISIS * intervaloMs;
-  return Date.now() - Math.max(duracionCalendario, duracionIndicadores);
+  const diasProyeccion = { "15m": 30, "1h": 60, "4h": 120, "1d": 365, "1w": 730 }[intervalo] || CONFIG.DIAS_CONTEXTO_ANALISIS;
+  return Date.now() - Math.max(duracionCalendario, duracionIndicadores, diasProyeccion * 86400000);
 }
 
 function esperar(milisegundos) {

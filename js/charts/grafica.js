@@ -349,6 +349,22 @@ function actualizarOperativaIA(velasFormateadas, datosEMA, datosSQZ, datosRSI) {
 
   zonaLong.textContent = `${precioSenal(resultado.zonas.long.desde)}–${precioSenal(resultado.zonas.long.hasta)}`;
   zonaShort.textContent = `${precioSenal(resultado.zonas.short.desde)}–${precioSenal(resultado.zonas.short.hasta)}`;
+  document.getElementById("condicionLongIA").textContent = resultado.proyeccion.subida.alineada ? "Habilitada: esperar retroceso, rechazo alcista y cierre confirmado." : "Deshabilitada mientras EMA10 > EMA55 > EMA200 no confirme tendencia alcista.";
+  document.getElementById("condicionShortIA").textContent = resultado.proyeccion.caida.alineada ? "Habilitada: esperar rebote, rechazo bajista y cierre confirmado." : "Deshabilitada mientras EMA10 < EMA55 < EMA200 no confirme tendencia bajista.";
+  const subida = resultado.proyeccion.subida;
+  const caida = resultado.proyeccion.caida;
+  const objetivoTexto = (cercano, extendido, direccion) => Number.isFinite(extendido) ? `${Number.isFinite(cercano) ? precioSenal(cercano) : "sin nivel cercano"} · ${precioSenal(extendido)}` : `Sin ${direccion} previo por delante`;
+  document.getElementById("objetivosSubidaIA").textContent = objetivoTexto(subida.cercano, subida.extendido, "máximo");
+  document.getElementById("objetivosCaidaIA").textContent = objetivoTexto(caida.cercano, caida.extendido, "mínimo");
+  const factibilidadMaximo = document.getElementById("factibilidadMaximoIA");
+  const factibilidadMinimo = document.getElementById("factibilidadMinimoIA");
+  factibilidadMaximo.textContent = `Factibilidad ${subida.nivel}`;
+  factibilidadMinimo.textContent = `Factibilidad ${caida.nivel}`;
+  factibilidadMaximo.className = subida.clase;
+  factibilidadMinimo.className = caida.clase;
+  document.getElementById("detalleMaximoIA").textContent = `${Number.isFinite(subida.distanciaATR) ? `${subida.distanciaATR.toFixed(1)} ATR hasta el máximo extendido` : "precio en máximo de la ventana"} · ${subida.alineada ? "alineado" : "contra la estructura"}.`;
+  document.getElementById("detalleMinimoIA").textContent = `${Number.isFinite(caida.distanciaATR) ? `${caida.distanciaATR.toFixed(1)} ATR hasta el mínimo extendido` : "precio en mínimo de la ventana"} · ${caida.alineada ? "alineado" : "contra la estructura"}.`;
+  document.getElementById("ventanaExtremosIA").textContent = `Objetivo cercano / extendido · cobertura ${resultado.proyeccion.coberturaDias.toFixed(0)} de ${resultado.proyeccion.dias} días (${resultado.proyeccion.velas} velas cerradas).`;
   const senal = resultado.vigente;
   if (!senal) {
     estado.textContent = "Esperando confirmación";
@@ -364,8 +380,8 @@ function actualizarOperativaIA(velasFormateadas, datosEMA, datosSQZ, datosRSI) {
   detalle.hidden = false;
   document.getElementById("entradaOperacionIA").textContent = `${precioSenal(senal.entradaDesde)}–${precioSenal(senal.entradaHasta)}`;
   document.getElementById("stopOperacionIA").textContent = precioSenal(senal.stop);
-  document.getElementById("tp1OperacionIA").textContent = `${precioSenal(senal.tp1)} · 1:${senal.rr1}`;
-  document.getElementById("tp2OperacionIA").textContent = `${precioSenal(senal.tp2)} · 1:${senal.rr2}`;
+  document.getElementById("tp1OperacionIA").textContent = `${precioSenal(senal.tp1)} · 1:${senal.rr1.toFixed(1)}`;
+  document.getElementById("tp2OperacionIA").textContent = `${precioSenal(senal.tp2)} · 1:${senal.rr2.toFixed(1)}`;
   document.getElementById("razonesOperacionIA").textContent = senal.razones.join(" · ");
 }
 
