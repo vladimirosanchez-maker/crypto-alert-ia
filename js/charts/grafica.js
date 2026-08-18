@@ -50,6 +50,10 @@ const velas = grafica.addCandlestickSeries({ upColor: "#26a69a", downColor: "#ef
 const ema10 = grafica.addLineSeries({ color: "#42a5f5", lineWidth: 1, title: "", priceFormat: formatoPrecio, priceLineVisible: false });
 const ema55 = grafica.addLineSeries({ color: "#f6c344", lineWidth: 1, title: "", priceFormat: formatoPrecio, priceLineVisible: false });
 const ema200 = grafica.addLineSeries({ color: "#d5dbe4", lineWidth: 1, title: "", priceFormat: formatoPrecio, priceLineVisible: false });
+const lineaEntradaOperacion = grafica.addLineSeries({ color: "#5ec8ff", lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Dashed, title: "ENTRADA", priceFormat: formatoPrecio, priceLineVisible: false, lastValueVisible: true });
+const lineaStopOperacion = grafica.addLineSeries({ color: "#ef5350", lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed, title: "STOP", priceFormat: formatoPrecio, priceLineVisible: false, lastValueVisible: true });
+const lineaTP1Operacion = grafica.addLineSeries({ color: "#48c78e", lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dotted, title: "TP1", priceFormat: formatoPrecio, priceLineVisible: false, lastValueVisible: true });
+const lineaTP2Operacion = grafica.addLineSeries({ color: "#20b77a", lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed, title: "TP2", priceFormat: formatoPrecio, priceLineVisible: false, lastValueVisible: true });
 const volumen = grafica.addHistogramSeries({ priceScaleId: "volume", priceFormat: { type: "volume" } });
 const { graficaADX, histogramaTTM, lineaADX } = crearGraficaADX();
 const { graficaRSI, rsi, senal, limiteInferior, limiteSuperior, lineasBanda } = crearGraficaRSI();
@@ -324,6 +328,16 @@ function actualizarOperativaIA(velasFormateadas, datosEMA, datosSQZ, datosRSI) {
     rsi: datosRSI, sqz: datosSQZ, ajustesSQZ: configuracionIndicadores.sqz
   });
   velas.setMarkers(crearMarcadoresOperativos(resultado));
+  const actualizarLinea = (serie, valor) => {
+    const senal = resultado.vigente;
+    if (!senal || !Number.isFinite(valor)) { serie.setData([]); return; }
+    const hasta = Math.max(senal.tiempo + segundosDelPeriodo(), velasFormateadas.at(-1).time);
+    serie.setData([{ time: senal.tiempo, value: valor }, { time: hasta, value: valor }]);
+  };
+  actualizarLinea(lineaEntradaOperacion, resultado.vigente?.precio);
+  actualizarLinea(lineaStopOperacion, resultado.vigente?.stop);
+  actualizarLinea(lineaTP1Operacion, resultado.vigente?.tp1);
+  actualizarLinea(lineaTP2Operacion, resultado.vigente?.tp2);
 
   const estado = document.getElementById("estadoOperacionIA");
   const resumen = document.getElementById("resumenOperacionIA");
@@ -347,10 +361,40 @@ function actualizarOperativaIA(velasFormateadas, datosEMA, datosSQZ, datosRSI) {
     return;
   }
 
-  zonaLong.textContent = `${precioSenal(resultado.zonas.long.desde)}–${precioSenal(resultado.zonas.long.hasta)}`;
-  zonaShort.textContent = `${precioSenal(resultado.zonas.short.desde)}–${precioSenal(resultado.zonas.short.hasta)}`;
-  document.getElementById("condicionLongIA").textContent = resultado.proyeccion.subida.alineada ? "Habilitada: esperar retroceso, rechazo alcista y cierre confirmado." : "Deshabilitada mientras EMA10 > EMA55 > EMA200 no confirme tendencia alcista.";
-  document.getElementById("condicionShortIA").textContent = resultado.proyeccion.caida.alineada ? "Habilitada: esperar rebote, rechazo bajista y cierre confirmado." : "Deshabilitada mientras EMA10 < EMA55 < EMA200 no confirme tendencia bajista.";
+  const estadoOportunidad = resultado.oportunidad.estado;
+  const etiquetaLong = document.getElementById("etiquetaZonaLongIA");
+  const etiquetaShort = document.getElementById("etiquetaZonaShortIA");
+  if (estadoOportunidad === "LONG") {
+    estado.textContent = resultado.oportunidad.setupPendiente ? "SETUP LONG en zona" : "ESPERAR RETROCESO LONG";
+    estado.className = "long";
+    resumen.textContent = `Compra probable cerca de ${precioSenal(resultado.zonas.long.central)}; tolerancia ±0,25 ATR. La entrada sólo se confirma con una vela de rechazo cerrada.`;
+    etiquetaLong.textContent = "Precio central probable LONG";
+    zonaLong.textContent = `${precioSenal(resultado.zonas.long.central)} · zona ${precioSenal(resultado.zonas.long.desde)}–${precioSenal(resultado.zonas.long.hasta)}`;
+    document.getElementById("condicionLongIA").textContent = resultado.oportunidad.setupPendiente ? "Precio dentro del setup: falta flecha de confirmación al cierre." : "Esperar retroceso hacia esta zona; no comprar arriba.";
+    etiquetaShort.textContent = "SHORT no permitido";
+    zonaShort.textContent = "Contra la tendencia actual";
+    document.getElementById("condicionShortIA").textContent = "No vender mientras la estructura permanezca alcista.";
+  } else if (estadoOportunidad === "SHORT") {
+    estado.textContent = resultado.oportunidad.setupPendiente ? "SETUP SHORT en zona" : "ESPERAR REBOTE SHORT";
+    estado.className = "short";
+    resumen.textContent = `Venta probable cerca de ${precioSenal(resultado.zonas.short.central)}; tolerancia ±0,25 ATR. La entrada sólo se confirma con una vela de rechazo cerrada.`;
+    etiquetaLong.textContent = "LONG no permitido";
+    zonaLong.textContent = "Contra la tendencia actual";
+    document.getElementById("condicionLongIA").textContent = "No comprar mientras la estructura permanezca bajista.";
+    etiquetaShort.textContent = "Precio central probable SHORT";
+    zonaShort.textContent = `${precioSenal(resultado.zonas.short.central)} · zona ${precioSenal(resultado.zonas.short.desde)}–${precioSenal(resultado.zonas.short.hasta)}`;
+    document.getElementById("condicionShortIA").textContent = resultado.oportunidad.setupPendiente ? "Precio dentro del setup: falta flecha de confirmación al cierre." : "Esperar rebote hacia esta zona; no vender abajo.";
+  } else {
+    estado.textContent = "NO OPERAR";
+    estado.className = "no-operar";
+    resumen.textContent = "Las EMA no confirman una tendencia ordenada. No existe precio de entrada válido hasta que la estructura se defina.";
+    etiquetaLong.textContent = "Activación potencial LONG";
+    zonaLong.textContent = `Recuperar y sostener ${precioSenal(resultado.oportunidad.activacion.long)}`;
+    document.getElementById("condicionLongIA").textContent = "Después deberá formarse un retroceso; este nivel no es entrada inmediata.";
+    etiquetaShort.textContent = "Activación potencial SHORT";
+    zonaShort.textContent = `Perder y sostener ${precioSenal(resultado.oportunidad.activacion.short)}`;
+    document.getElementById("condicionShortIA").textContent = "Después deberá producirse un rebote; este nivel no es entrada inmediata.";
+  }
   const subida = resultado.proyeccion.subida;
   const caida = resultado.proyeccion.caida;
   const objetivoTexto = (cercano, extendido, direccion) => Number.isFinite(extendido) ? `${Number.isFinite(cercano) ? precioSenal(cercano) : "sin nivel cercano"} · ${precioSenal(extendido)}` : `Sin ${direccion} previo por delante`;
@@ -367,9 +411,6 @@ function actualizarOperativaIA(velasFormateadas, datosEMA, datosSQZ, datosRSI) {
   document.getElementById("ventanaExtremosIA").textContent = `Objetivo cercano / extendido · cobertura ${resultado.proyeccion.coberturaDias.toFixed(0)} de ${resultado.proyeccion.dias} días (${resultado.proyeccion.velas} velas cerradas).`;
   const senal = resultado.vigente;
   if (!senal) {
-    estado.textContent = "Esperando confirmación";
-    estado.className = "neutral";
-    resumen.textContent = `${resultado.senales.length} señales históricas detectadas. No hay entrada vigente: espera cierre fuera de la zona con EMA, RSI, SQZ, DMI/ADX y volumen alineados.`;
     detalle.hidden = true;
     return;
   }
@@ -378,7 +419,7 @@ function actualizarOperativaIA(velasFormateadas, datosEMA, datosSQZ, datosRSI) {
   estado.className = senal.tipo === "LONG" ? "long" : "short";
   resumen.textContent = "Señal reciente confirmada al cierre. No perseguir el precio fuera de la zona de entrada.";
   detalle.hidden = false;
-  document.getElementById("entradaOperacionIA").textContent = `${precioSenal(senal.entradaDesde)}–${precioSenal(senal.entradaHasta)}`;
+  document.getElementById("entradaOperacionIA").textContent = `${precioSenal(senal.precio)} · ${precioSenal(senal.entradaDesde)}–${precioSenal(senal.entradaHasta)}`;
   document.getElementById("stopOperacionIA").textContent = precioSenal(senal.stop);
   document.getElementById("tp1OperacionIA").textContent = `${precioSenal(senal.tp1)} · 1:${senal.rr1.toFixed(1)}`;
   document.getElementById("tp2OperacionIA").textContent = `${precioSenal(senal.tp2)} · 1:${senal.rr2.toFixed(1)}`;

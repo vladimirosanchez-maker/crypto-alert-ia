@@ -34,26 +34,28 @@ function precioSenal(valor) {
   return Number(valor).toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-function construirOperacion(tipo, vela, atr, soporte, resistencia, objetivoCercano, objetivoExtendido, razones, tiempo, indice) {
+function construirOperacion(tipo, vela, atr, setup, objetivoCercano, objetivoExtendido, razones, tiempo, indice) {
   const esLong = tipo === "LONG";
-  const entradaDesde = esLong ? soporte : vela.close;
-  const entradaHasta = esLong ? vela.close : resistencia;
-  const invalidacionEstructural = esLong ? soporte - atr * 0.2 : resistencia + atr * 0.2;
-  const invalidacionATR = esLong ? vela.close - atr * 1.4 : vela.close + atr * 1.4;
+  const entradaCentral = setup.precio;
+  const entradaDesde = entradaCentral - atr * 0.25;
+  const entradaHasta = entradaCentral + atr * 0.25;
+  const invalidacionEstructural = esLong ? setup.extremo - atr * 0.2 : setup.extremo + atr * 0.2;
+  const invalidacionATR = esLong ? entradaCentral - atr * 1.25 : entradaCentral + atr * 1.25;
   const stop = esLong ? Math.min(invalidacionEstructural, invalidacionATR) : Math.max(invalidacionEstructural, invalidacionATR);
-  const riesgo = Math.max(Math.abs(vela.close - stop), atr * 0.5);
-  const tp1RR = esLong ? vela.close + riesgo * 1.5 : vela.close - riesgo * 1.5;
-  const tp2RR = esLong ? vela.close + riesgo * 2.5 : vela.close - riesgo * 2.5;
+  const riesgo = Math.max(Math.abs(entradaCentral - stop), atr * 0.5);
+  const tp1RR = esLong ? entradaCentral + riesgo * 1.5 : entradaCentral - riesgo * 1.5;
+  const tp2RR = esLong ? entradaCentral + riesgo * 2.5 : entradaCentral - riesgo * 2.5;
   const tp1 = esLong ? Math.max(tp1RR, objetivoCercano) : Math.min(tp1RR, objetivoCercano);
   const tp2 = esLong ? Math.max(tp2RR, objetivoExtendido, tp1) : Math.min(tp2RR, objetivoExtendido, tp1);
   return {
-    tipo, tiempo, indice, precio: vela.close,
+    tipo, tiempo, indice, precio: entradaCentral, confirmacionPrecio: vela.close,
+    setupTiempo: setup.tiempo,
     entradaDesde: Math.min(entradaDesde, entradaHasta),
     entradaHasta: Math.max(entradaDesde, entradaHasta),
     stop,
     tp1, tp2,
-    rr1: Math.abs(tp1 - vela.close) / riesgo,
-    rr2: Math.abs(tp2 - vela.close) / riesgo,
+    rr1: Math.abs(tp1 - entradaCentral) / riesgo,
+    rr2: Math.abs(tp2 - entradaCentral) / riesgo,
     razones
   };
 }
@@ -121,7 +123,8 @@ function evaluarSenalesOperativas(velas, opciones) {
   const estructura = { "15m": 20, "1h": 20, "4h": 16, "1d": 14, "1w": 10 }[temporalidad];
   const enfriamiento = { "15m": 12, "1h": 10, "4h": 8, "1d": 6, "1w": 4 }[temporalidad];
   const senales = [];
-  let ultimaDireccion = null;
+  const setups = [];
+  let setupPendiente = null;
   let ultimoIndice = -Infinity;
 
   for (let indice = 201; indice <= ultimoCerrado; indice += 1) {
@@ -143,8 +146,6 @@ function evaluarSenalesOperativas(velas, opciones) {
     const extremos = extremosVentana(velas, indice, temporalidad);
     if (![e10, e55, e200, valorRSI, momentum, adx, plus, minus, atr[indice]].every(Number.isFinite)) continue;
 
-    const velaAlcista = vela.close > vela.open && vela.close > anterior.close;
-    const velaBajista = vela.close < vela.open && vela.close < anterior.close;
     const tendenciaAlcista = vela.close > e200 && e10 > e55 && e55 > e200;
     const tendenciaBajista = vela.close < e200 && e10 < e55 && e55 < e200;
     const tolerancia = atr[indice] * 0.35;
@@ -154,44 +155,41 @@ function evaluarSenalesOperativas(velas, opciones) {
     const posicionRango = (vela.close - rango.minimo) / amplitudRango;
     const precioLongFavorable = posicionRango <= 0.65 && vela.close < rango.maximo - atr[indice] * 0.15;
     const precioShortFavorable = posicionRango >= 0.35 && vela.close > rango.minimo + atr[indice] * 0.15;
-    const sqzGiraAlcista = momentum > momentumAnterior;
-    const sqzGiraBajista = momentum < momentumAnterior;
+    const setupLong = tendenciaAlcista && tocaZonaLong && precioLongFavorable;
+    const setupShort = tendenciaBajista && tocaZonaShort && precioShortFavorable;
+    if (setupPendiente && (indice > setupPendiente.expira || (setupPendiente.tipo === "LONG" ? !tendenciaAlcista : !tendenciaBajista))) setupPendiente = null;
 
-    const longChecks = [
-      [tendenciaAlcista, "tendencia alcista EMA10 > EMA55 > EMA200"],
-      [tocaZonaLong, "retroceso hacia EMA/soporte, no compra en máximos"],
-      [precioLongFavorable, "precio en zona baja/media del rango reciente"],
-      [velaAlcista, "vela de rechazo alcista confirmada al cierre"],
-      [valorRSI >= 38 && valorRSI <= 60 && valorRSI > rsiAnterior, `RSI ${valorRSI.toFixed(1)} recuperándose`],
-      [sqzGiraAlcista, "SQZ gira al alza o pierde impulso bajista"],
-      [plus > minus && adx >= 18, `DMI alcista con ADX ${adx.toFixed(1)}`],
-      [volumenRelativo >= 0.85, `volumen ${volumenRelativo.toFixed(2)}×`]
-    ];
-    const shortChecks = [
-      [tendenciaBajista, "tendencia bajista EMA10 < EMA55 < EMA200"],
-      [tocaZonaShort, "rebote hacia EMA/resistencia, no venta en mínimos"],
-      [precioShortFavorable, "precio en zona media/alta del rango reciente"],
-      [velaBajista, "vela de rechazo bajista confirmada al cierre"],
-      [valorRSI <= 62 && valorRSI >= 40 && valorRSI < rsiAnterior, `RSI ${valorRSI.toFixed(1)} girando a la baja`],
-      [sqzGiraBajista, "SQZ gira a la baja o pierde impulso alcista"],
-      [minus > plus && adx >= 18, `DMI bajista con ADX ${adx.toFixed(1)}`],
-      [volumenRelativo >= 0.85, `volumen ${volumenRelativo.toFixed(2)}×`]
-    ];
-    const longPuntos = longChecks.filter(([cumple]) => cumple).length;
-    const shortPuntos = shortChecks.filter(([cumple]) => cumple).length;
-    const longValido = longPuntos >= 7 && longChecks[0][0] && longChecks[1][0] && longChecks[2][0] && longChecks[3][0];
-    const shortValido = shortPuntos >= 7 && shortChecks[0][0] && shortChecks[1][0] && shortChecks[2][0] && shortChecks[3][0];
-    const direccion = longValido ? "LONG" : shortValido ? "SHORT" : null;
-    if (!direccion) { ultimaDireccion = null; continue; }
-    if (direccion === ultimaDireccion || indice - ultimoIndice < enfriamiento) continue;
-    const checks = direccion === "LONG" ? longChecks : shortChecks;
-    const soporteOperacion = Math.max(rango.minimo, Math.min(e10, e55) - atr[indice] * 0.35);
-    const resistenciaOperacion = Math.min(rango.maximo, Math.max(e10, e55) + atr[indice] * 0.35);
-    const objetivoCercano = direccion === "LONG" ? rango.maximo : rango.minimo;
-    const objetivoExtendido = direccion === "LONG" ? extremos.maximo : extremos.minimo;
-    senales.push(construirOperacion(direccion, vela, atr[indice], soporteOperacion, resistenciaOperacion, objetivoCercano, objetivoExtendido, checks.filter(([cumple]) => cumple).map(([, razon]) => razon), vela.time, indice));
-    ultimaDireccion = direccion;
-    ultimoIndice = indice;
+    if (setupPendiente && indice > setupPendiente.indice) {
+      const esLong = setupPendiente.tipo === "LONG";
+      const velaRechazo = esLong ? vela.close > vela.open && vela.close > setupPendiente.maximo : vela.close < vela.open && vela.close < setupPendiente.minimo;
+      const rsiConfirma = esLong ? valorRSI >= 42 && valorRSI <= 65 && valorRSI > rsiAnterior : valorRSI <= 58 && valorRSI >= 35 && valorRSI < rsiAnterior;
+      const sqzConfirma = esLong ? momentum > momentumAnterior : momentum < momentumAnterior;
+      const dmiConfirma = esLong ? plus > minus && adx >= 18 : minus > plus && adx >= 18;
+      const checks = [
+        [esLong ? tendenciaAlcista : tendenciaBajista, `tendencia ${esLong ? "alcista" : "bajista"} conservada`],
+        [velaRechazo, `cierre confirma rechazo ${esLong ? "alcista" : "bajista"}`],
+        [rsiConfirma, `RSI ${valorRSI.toFixed(1)} confirma giro`],
+        [sqzConfirma, `SQZ confirma giro ${esLong ? "al alza" : "a la baja"}`],
+        [dmiConfirma, `DMI alineado con ADX ${adx.toFixed(1)}`],
+        [volumenRelativo >= 0.85, `volumen ${volumenRelativo.toFixed(2)}×`]
+      ];
+      const confirma = checks.filter(([cumple]) => cumple).length >= 5 && checks[0][0] && checks[1][0];
+      if (confirma && indice - ultimoIndice >= enfriamiento) {
+        const objetivoCercano = esLong ? rango.maximo : rango.minimo;
+        const objetivoExtendido = esLong ? extremos.maximo : extremos.minimo;
+        setups.push(setupPendiente);
+        senales.push(construirOperacion(setupPendiente.tipo, vela, atr[indice], setupPendiente, objetivoCercano, objetivoExtendido, checks.filter(([cumple]) => cumple).map(([, razon]) => razon), vela.time, indice));
+        ultimoIndice = indice;
+        setupPendiente = null;
+        continue;
+      }
+    }
+
+    if (!setupPendiente && indice - ultimoIndice >= enfriamiento && (setupLong || setupShort)) {
+      const tipo = setupLong ? "LONG" : "SHORT";
+      const precioBase = tipo === "LONG" ? Math.max(rango.minimo, e55) : Math.min(rango.maximo, e55);
+      setupPendiente = { tipo, indice, tiempo: vela.time, precio: precioBase, extremo: tipo === "LONG" ? vela.low : vela.high, minimo: vela.low, maximo: vela.high, expira: indice + 4, atr: atr[indice] };
+    }
   }
 
   const indice = ultimoCerrado;
@@ -201,8 +199,12 @@ function evaluarSenalesOperativas(velas, opciones) {
   const e10 = ema10Map.get(ultima.time);
   const e55 = ema55Map.get(ultima.time);
   const e200 = ema200Map.get(ultima.time);
-  const zonaLong = Number.isFinite(atrActual) ? { desde: Math.min(e10, e55, rango.minimo + atrActual), hasta: Math.max(e10, e55) + atrActual * 0.15 } : null;
-  const zonaShort = Number.isFinite(atrActual) ? { desde: Math.min(e10, e55) - atrActual * 0.15, hasta: Math.max(e10, e55, rango.maximo - atrActual) } : null;
+  const tendenciaAlcista = ultima.close > e200 && e10 > e55 && e55 > e200;
+  const tendenciaBajista = ultima.close < e200 && e10 < e55 && e55 < e200;
+  const precioLong = Math.max(rango.minimo, e55);
+  const precioShort = Math.min(rango.maximo, e55);
+  const zonaLong = Number.isFinite(atrActual) ? { central: precioLong, desde: precioLong - atrActual * 0.25, hasta: precioLong + atrActual * 0.25 } : null;
+  const zonaShort = Number.isFinite(atrActual) ? { central: precioShort, desde: precioShort - atrActual * 0.25, hasta: precioShort + atrActual * 0.25 } : null;
   const valorRSI = rsiMap.get(ultima.time);
   const rsiAnterior = rsiMap.get(velas[indice - 1].time);
   const momentum = momentumMap.get(ultima.time);
@@ -211,15 +213,14 @@ function evaluarSenalesOperativas(velas, opciones) {
   const proyeccion = proyectarExtremos(velas, indice, temporalidad, { e10, e55, e200, valorRSI, rsiAnterior, momentum, momentumAnterior, adx: dmi.adx[indice], plus: dmi.plusDI[indice], minus: dmi.minusDI[indice], atr: atrActual, volumenRelativo: ultima.volume / volumenMedio });
   const ultimaSenal = senales.at(-1);
   const vigente = ultimaSenal && indice - ultimaSenal.indice <= 2 ? ultimaSenal : null;
-  return { habilitado: true, senales, vigente, proyeccion, zonas: { long: zonaLong, short: zonaShort, cierre: ultima.close, marco: temporalidad } };
+  const estadoMercado = tendenciaAlcista ? "LONG" : tendenciaBajista ? "SHORT" : "NO_OPERAR";
+  const activacion = { long: Math.max(e10, e55, e200), short: Math.min(e10, e55, e200) };
+  if (setupPendiente) setups.push(setupPendiente);
+  return { habilitado: true, senales, setups, vigente, proyeccion, oportunidad: { estado: estadoMercado, activacion, setupPendiente }, zonas: { long: zonaLong, short: zonaShort, cierre: ultima.close, marco: temporalidad } };
 }
 
 function crearMarcadoresOperativos(resultado) {
-  return resultado.senales.map((senal) => ({
-    time: senal.tiempo,
-    position: senal.tipo === "LONG" ? "belowBar" : "aboveBar",
-    color: senal.tipo === "LONG" ? "#18c98b" : "#ef5350",
-    shape: senal.tipo === "LONG" ? "arrowUp" : "arrowDown",
-    text: senal.tipo
-  }));
+  const setups = (resultado.setups || []).map((setup) => ({ time: setup.tiempo, position: setup.tipo === "LONG" ? "belowBar" : "aboveBar", color: setup.tipo === "LONG" ? "#55d6aa" : "#f1847e", shape: "circle", text: `Zona ${setup.tipo === "LONG" ? "L" : "S"} ${precioSenal(setup.precio)}` }));
+  const confirmaciones = resultado.senales.map((senal) => ({ time: senal.tiempo, position: senal.tipo === "LONG" ? "belowBar" : "aboveBar", color: senal.tipo === "LONG" ? "#18c98b" : "#ef5350", shape: senal.tipo === "LONG" ? "arrowUp" : "arrowDown", text: `${senal.tipo} ${precioSenal(senal.precio)}` }));
+  return [...setups, ...confirmaciones].sort((a, b) => a.time - b.time);
 }

@@ -129,12 +129,13 @@
 .operativa-cabecera strong.long { color: #39c89d; }
 .operativa-cabecera strong.short { color: #f17169; }
 .operativa-cabecera strong.neutral { color: #d7a93e; }
+.operativa-cabecera strong.no-operar { color: #ffb74d; }
 .operativa-ia > p { margin: 7px 0 0; color: #a8b6c5; font-size: 10px; line-height: 1.45; }
 .detalle-operacion { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 9px; }
 .detalle-operacion[hidden] { display: none; }
 .detalle-operacion > div { padding: 7px; border: 1px solid #293746; border-radius: 4px; background: #101a24; }
 .detalle-operacion span, .zonas-espera span { display: block; color: #8292a3; font-size: 9px; }
-.detalle-operacion b, .zonas-espera b { display: block; margin-top: 3px; color: #e4eaf0; font-family: Consolas, ui-monospace, monospace; font-size: 10px; font-variant-numeric: tabular-nums; }
+.detalle-operacion b, .zonas-espera b { display: block; margin-top: 4px; color: #e4eaf0; font-family: Consolas, ui-monospace, monospace; font-size: 11px; line-height: 1.4; font-variant-numeric: tabular-nums; }
 .detalle-operacion p { grid-column: 1 / -1; margin: 2px 0 0; padding: 7px; border-left: 2px solid #6e89a6; color: #aab8c6; background: #101820; font-size: 9px; line-height: 1.45; }
 .zonas-espera { display: grid; gap: 6px; margin-top: 9px; }
 .zonas-espera > div { padding: 8px; border-radius: 4px; }
