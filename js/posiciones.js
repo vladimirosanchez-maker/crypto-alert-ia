@@ -54,7 +54,9 @@ const POSICIONES_EXCHANGE = (() => {
       vacio.textContent = "No hay posiciones abiertas de BTC o ETH.";
       elementos.lista.append(vacio);
     }
-    elementos.estado.textContent = errores.length ? `Conectado parcialmente: ${errores.map((error) => error.exchange).join(" y ")} no disponible.` : "Binance y BingX conectados";
+    elementos.estado.textContent = errores.length
+      ? `Conectado parcialmente: ${errores.map((error) => `${error.exchange}: ${error.message}`).join(" · ")}`
+      : "Binance y BingX conectados";
   }
 
   async function consultar() {
