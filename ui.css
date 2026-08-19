@@ -157,3 +157,22 @@
 .proyeccion-extremos article em.media { color: #e0bd55; }
 .proyeccion-extremos article em.baja { color: #f1847e; }
 .proyeccion-extremos > small { display: block; margin-top: 7px; color: #758595; font-size: 9px; line-height: 1.4; }
+.cuentas-exchange { padding: 10px; border: 1px solid #314052; border-radius: 6px; background: #0d141b; }
+.cuentas-cabecera { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.cuentas-cabecera strong { display: block; color: #a9b6c3; font-size: 10px; }
+.cuentas-cabecera button { flex: 0 0 auto; border: 1px solid #3c526c; border-radius: 4px; padding: 6px 8px; background: #172837; color: #9ed9ff; cursor: pointer; font-size: 9px; }
+.lista-posiciones { display: grid; gap: 7px; margin-top: 9px; }
+.posicion-exchange { padding: 8px; border: 1px solid #2a3948; border-radius: 5px; background: #101922; }
+.posicion-exchange.ganancia { border-left: 3px solid #26a69a; }
+.posicion-exchange.perdida { border-left: 3px solid #ef5350; }
+.posicion-exchange header { display: grid; gap: 4px; padding-bottom: 7px; border-bottom: 1px solid #263441; }
+.posicion-exchange header strong { color: #dce5ed; font-size: 10px; }
+.posicion-exchange header em { font-size: 10px; font-style: normal; font-weight: 700; }
+.posicion-exchange.ganancia header em { color: #49d2a7; }
+.posicion-exchange.perdida header em { color: #f1847e; }
+.posicion-exchange > div { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 7px; }
+.posicion-exchange > div > div { min-width: 0; }
+.posicion-exchange span { display: block; color: #7f8e9e; font-size: 8px; }
+.posicion-exchange b { display: block; margin-top: 2px; overflow: hidden; color: #cbd5df; font-family: Consolas, ui-monospace, monospace; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.cuentas-exchange > small { display: block; margin-top: 8px; color: #718091; font-size: 8px; }
+.posiciones-vacias { margin: 0; color: #8795a3; font-size: 9px; }
