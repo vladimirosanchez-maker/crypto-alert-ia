@@ -7,11 +7,11 @@ export default async function handler(request, response) {
     });
     const tipo = binance.headers.get("content-type") || "";
     if (!binance.ok || !tipo.toLowerCase().includes("application/json")) {
-      return response.status(502).json({ ok: false, binanceStatus: binance.status, contentType: tipo.split(";")[0] || "desconocido" });
+      return response.status(424).json({ ok: false, binanceStatus: binance.status, contentType: tipo.split(";")[0] || "desconocido" });
     }
     const datos = await binance.json();
-    return response.status(200).json({ ok: true, version: "trace-2", binanceStatus: binance.status, serverTime: datos.serverTime });
+    return response.status(200).json({ ok: true, version: "upstream-detail-3", binanceStatus: binance.status, serverTime: datos.serverTime });
   } catch (error) {
-    return response.status(502).json({ ok: false, error: error.name === "TimeoutError" ? "Tiempo de espera agotado" : "Conexión fallida" });
+    return response.status(424).json({ ok: false, error: error.name === "TimeoutError" ? "Tiempo de espera agotado" : "Conexión fallida" });
   }
 }

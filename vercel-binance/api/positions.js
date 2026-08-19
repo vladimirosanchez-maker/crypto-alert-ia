@@ -49,11 +49,11 @@ export default async function handler(request, response) {
     traza("respuesta-binance", { status: binance.status, contentType: (binance.headers.get("content-type") || "").split(";")[0] });
     const tipo = binance.headers.get("content-type") || "";
     if (!tipo.toLowerCase().includes("application/json")) {
-      return response.status(502).json({ error: `Binance respondió HTTP ${binance.status} sin JSON` });
+      return response.status(424).json({ error: `Binance respondió HTTP ${binance.status} sin JSON` });
     }
     const datos = await binance.json();
     if (!binance.ok || !Array.isArray(datos)) {
-      return response.status(502).json({ error: `Binance: ${datos?.msg || `HTTP ${binance.status}`}` });
+      return response.status(424).json({ error: `Binance (${datos?.code ?? binance.status}): ${datos?.msg || `HTTP ${binance.status}`}` });
     }
 
     const positions = datos.filter((posicion) => SIMBOLOS.has(posicion.symbol) && Math.abs(numero(posicion.positionAmt)) > 0).map((posicion) => {
@@ -76,6 +76,6 @@ export default async function handler(request, response) {
   } catch (error) {
     const detalle = error.name === "TimeoutError" ? "tiempo de espera agotado" : error.name || "error desconocido";
     console.error(JSON.stringify({ event: "binance-relay-error", stage: etapa, errorName: error.name || "Error" }));
-    return response.status(502).json({ error: `Conector falló en ${etapa}: ${detalle}` });
+    return response.status(424).json({ error: `Conector falló en ${etapa}: ${detalle}` });
   }
 }
