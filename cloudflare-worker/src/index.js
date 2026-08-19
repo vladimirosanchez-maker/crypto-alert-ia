@@ -43,11 +43,30 @@ async function solicitarBinance(env) {
   if (!env.BINANCE_API_KEY || !env.BINANCE_SECRET_KEY) throw new Error("Credenciales Binance no configuradas");
   const consulta = `recvWindow=5000&timestamp=${Date.now()}`;
   const firma = await firmarHmac(env.BINANCE_SECRET_KEY, consulta);
-  const respuesta = await fetch(`https://fapi.binance.com/fapi/v2/positionRisk?${consulta}&signature=${firma}`, {
-    headers: { "X-MBX-APIKEY": env.BINANCE_API_KEY }
-  });
-  const datos = await respuesta.json();
-  if (!respuesta.ok || !Array.isArray(datos)) throw new Error(`Binance: ${datos?.msg || `HTTP ${respuesta.status}`}`);
+  let datos;
+  let ultimoError = "sin respuesta";
+  for (const base of ["https://fapi.binance.com", "https://fapi1.binance.com", "https://fapi2.binance.com", "https://fapi3.binance.com", "https://fapi4.binance.com"]) {
+    try {
+      const respuesta = await fetch(`${base}/fapi/v2/positionRisk?${consulta}&signature=${firma}`, {
+        headers: { "X-MBX-APIKEY": env.BINANCE_API_KEY }
+      });
+      const tipo = respuesta.headers.get("content-type") || "sin content-type";
+      if (!tipo.toLowerCase().includes("application/json")) {
+        ultimoError = `${new URL(base).hostname}: HTTP ${respuesta.status}, respuesta no JSON (${tipo.split(";")[0]})`;
+        continue;
+      }
+      const resultado = await respuesta.json();
+      if (!respuesta.ok || !Array.isArray(resultado)) {
+        ultimoError = `${new URL(base).hostname}: ${resultado?.msg || `HTTP ${respuesta.status}`}`;
+        continue;
+      }
+      datos = resultado;
+      break;
+    } catch (error) {
+      ultimoError = `${new URL(base).hostname}: ${error.message}`;
+    }
+  }
+  if (!datos) throw new Error(`Binance: ${ultimoError}`);
   return datos.filter((posicion) => SIMBOLOS.has(posicion.symbol) && Math.abs(numero(posicion.positionAmt)) > 0).map((posicion) => {
     const cantidadFirmada = numero(posicion.positionAmt);
     const lado = !posicion.positionSide || posicion.positionSide === "BOTH"
