@@ -7,3 +7,5 @@ Las claves privadas deben registrarse como variables cifradas de Vercel y nunca 
 - `BINANCE_API_KEY`
 - `BINANCE_SECRET_KEY`
 - `RELAY_TOKEN`
+
+Producción: `https://temporary-fleet-krypton-x0acmsu.vercel.app`.
