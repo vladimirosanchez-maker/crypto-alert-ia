@@ -1,5 +1,3 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
-
 const SIMBOLOS = new Set(["BTCUSDT", "ETHUSDT"]);
 
 function numero(valor, respaldo = 0) {
@@ -10,10 +8,19 @@ function numero(valor, respaldo = 0) {
 function tokenValido(request) {
   const recibido = String(request.headers.authorization || "");
   const esperado = `Bearer ${process.env.RELAY_TOKEN || ""}`;
-  const bufferRecibido = Buffer.from(recibido, "utf8");
-  const bufferEsperado = Buffer.from(esperado, "utf8");
-  if (!process.env.RELAY_TOKEN || bufferRecibido.length !== bufferEsperado.length) return false;
-  return timingSafeEqual(bufferRecibido, bufferEsperado);
+  if (!process.env.RELAY_TOKEN || recibido.length !== esperado.length) return false;
+  let diferencia = 0;
+  for (let indice = 0; indice < esperado.length; indice += 1) {
+    diferencia |= recibido.charCodeAt(indice) ^ esperado.charCodeAt(indice);
+  }
+  return diferencia === 0;
+}
+
+async function firmarHmac(secret, contenido) {
+  const encoder = new TextEncoder();
+  const clave = await globalThis.crypto.subtle.importKey("raw", encoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const firma = await globalThis.crypto.subtle.sign("HMAC", clave, encoder.encode(contenido));
+  return [...new Uint8Array(firma)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
 export default async function handler(request, response) {
@@ -28,7 +35,7 @@ export default async function handler(request, response) {
     }
     etapa = "firma de Binance";
     const consulta = `recvWindow=5000&timestamp=${Date.now()}`;
-    const firma = createHmac("sha256", process.env.BINANCE_SECRET_KEY).update(consulta).digest("hex");
+    const firma = await firmarHmac(process.env.BINANCE_SECRET_KEY, consulta);
     etapa = "solicitud a Binance";
     const binance = await fetch(`https://fapi.binance.com/fapi/v2/positionRisk?${consulta}&signature=${firma}`, {
       headers: { "X-MBX-APIKEY": process.env.BINANCE_API_KEY, accept: "application/json" },
