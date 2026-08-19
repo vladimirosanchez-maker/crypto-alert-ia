@@ -24,23 +24,29 @@ async function firmarHmac(secret, contenido) {
 }
 
 export default async function handler(request, response) {
+  const traza = (stage, extra = {}) => console.log(JSON.stringify({ event: "binance-relay", stage, ...extra }));
   response.setHeader("Cache-Control", "no-store");
   if (request.method !== "GET") return response.status(405).json({ error: "Método no permitido" });
   let etapa = "autenticación interna";
   try {
+    traza("inicio");
     if (!tokenValido(request)) return response.status(401).json({ error: "Token interno inválido" });
+    traza("token-validado");
     etapa = "configuración de credenciales";
     if (!process.env.BINANCE_API_KEY || !process.env.BINANCE_SECRET_KEY) {
       return response.status(503).json({ error: "Credenciales Binance no configuradas en Vercel" });
     }
+    traza("credenciales-presentes");
     etapa = "firma de Binance";
     const consulta = `recvWindow=5000&timestamp=${Date.now()}`;
     const firma = await firmarHmac(process.env.BINANCE_SECRET_KEY, consulta);
+    traza("firma-completa");
     etapa = "solicitud a Binance";
     const binance = await fetch(`https://fapi.binance.com/fapi/v2/positionRisk?${consulta}&signature=${firma}`, {
       headers: { "X-MBX-APIKEY": process.env.BINANCE_API_KEY, accept: "application/json" },
       signal: AbortSignal.timeout(7000)
     });
+    traza("respuesta-binance", { status: binance.status, contentType: (binance.headers.get("content-type") || "").split(";")[0] });
     const tipo = binance.headers.get("content-type") || "";
     if (!tipo.toLowerCase().includes("application/json")) {
       return response.status(502).json({ error: `Binance respondió HTTP ${binance.status} sin JSON` });
@@ -69,6 +75,7 @@ export default async function handler(request, response) {
     return response.status(200).json({ positions, updatedAt: Date.now() });
   } catch (error) {
     const detalle = error.name === "TimeoutError" ? "tiempo de espera agotado" : error.name || "error desconocido";
+    console.error(JSON.stringify({ event: "binance-relay-error", stage: etapa, errorName: error.name || "Error" }));
     return response.status(502).json({ error: `Conector falló en ${etapa}: ${detalle}` });
   }
 }
