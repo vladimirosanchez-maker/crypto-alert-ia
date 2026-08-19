@@ -10,8 +10,10 @@ function numero(valor, respaldo = 0) {
 function tokenValido(request) {
   const recibido = String(request.headers.authorization || "");
   const esperado = `Bearer ${process.env.RELAY_TOKEN || ""}`;
-  if (!process.env.RELAY_TOKEN || recibido.length !== esperado.length) return false;
-  return timingSafeEqual(Buffer.from(recibido), Buffer.from(esperado));
+  const bufferRecibido = Buffer.from(recibido, "utf8");
+  const bufferEsperado = Buffer.from(esperado, "utf8");
+  if (!process.env.RELAY_TOKEN || bufferRecibido.length !== bufferEsperado.length) return false;
+  return timingSafeEqual(bufferRecibido, bufferEsperado);
 }
 
 export default async function handler(request, response) {
