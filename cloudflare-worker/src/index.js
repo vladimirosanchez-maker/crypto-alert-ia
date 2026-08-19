@@ -40,57 +40,15 @@ function porcentajePnl(pnl, margen) {
 }
 
 async function solicitarBinance(env) {
-  if (env.BINANCE_RELAY_URL && env.DASHBOARD_TOKEN) {
-    const respuestaRelay = await fetch(`${String(env.BINANCE_RELAY_URL).replace(/\/$/, "")}/api/positions`, {
-      headers: { authorization: `Bearer ${env.DASHBOARD_TOKEN}`, accept: "application/json" }
-    });
-    const tipoRelay = respuestaRelay.headers.get("content-type") || "";
-    if (!tipoRelay.toLowerCase().includes("application/json")) throw new Error(`Conector regional HTTP ${respuestaRelay.status} sin JSON`);
-    const datosRelay = await respuestaRelay.json();
-    if (!respuestaRelay.ok || !Array.isArray(datosRelay.positions)) throw new Error(datosRelay.error || `Conector regional HTTP ${respuestaRelay.status}`);
-    return datosRelay.positions;
-  }
-  if (!env.BINANCE_API_KEY || !env.BINANCE_SECRET_KEY) throw new Error("Credenciales Binance no configuradas");
-  const consulta = `recvWindow=5000&timestamp=${Date.now()}`;
-  const firma = await firmarHmac(env.BINANCE_SECRET_KEY, consulta);
-  let datos;
-  let ultimoError = "sin respuesta";
-  for (const base of ["https://fapi.binance.com", "https://fapi1.binance.com", "https://fapi2.binance.com", "https://fapi3.binance.com", "https://fapi4.binance.com"]) {
-    try {
-      const respuesta = await fetch(`${base}/fapi/v2/positionRisk?${consulta}&signature=${firma}`, {
-        headers: { "X-MBX-APIKEY": env.BINANCE_API_KEY }
-      });
-      const tipo = respuesta.headers.get("content-type") || "sin content-type";
-      if (!tipo.toLowerCase().includes("application/json")) {
-        ultimoError = `${new URL(base).hostname}: HTTP ${respuesta.status}, respuesta no JSON (${tipo.split(";")[0]})`;
-        continue;
-      }
-      const resultado = await respuesta.json();
-      if (!respuesta.ok || !Array.isArray(resultado)) {
-        ultimoError = `${new URL(base).hostname}: ${resultado?.msg || `HTTP ${respuesta.status}`}`;
-        continue;
-      }
-      datos = resultado;
-      break;
-    } catch (error) {
-      ultimoError = `${new URL(base).hostname}: ${error.message}`;
-    }
-  }
-  if (!datos) throw new Error(`Binance: ${ultimoError}`);
-  return datos.filter((posicion) => SIMBOLOS.has(posicion.symbol) && Math.abs(numero(posicion.positionAmt)) > 0).map((posicion) => {
-    const cantidadFirmada = numero(posicion.positionAmt);
-    const lado = !posicion.positionSide || posicion.positionSide === "BOTH"
-      ? (cantidadFirmada >= 0 ? "LONG" : "SHORT")
-      : posicion.positionSide;
-    const margen = numero(posicion.isolatedMargin) || Math.abs(numero(posicion.notional)) / Math.max(1, numero(posicion.leverage, 1));
-    const pnl = numero(posicion.unRealizedProfit);
-    return {
-      exchange: "BINANCE", symbol: posicion.symbol, side: lado,
-      quantity: Math.abs(cantidadFirmada), entryPrice: numero(posicion.entryPrice), markPrice: numero(posicion.markPrice),
-      pnl, pnlPercent: porcentajePnl(pnl, margen), leverage: numero(posicion.leverage), margin: margen,
-      liquidationPrice: numero(posicion.liquidationPrice), marginType: posicion.marginType || "--", updatedAt: numero(posicion.updateTime, Date.now())
-    };
+  if (!env.BINANCE_RELAY_URL || !env.DASHBOARD_TOKEN) throw new Error("Conector regional Binance no configurado");
+  const respuestaRelay = await fetch(`${String(env.BINANCE_RELAY_URL).replace(/\/$/, "")}/api/positions`, {
+    headers: { authorization: `Bearer ${env.DASHBOARD_TOKEN}`, accept: "application/json" }
   });
+  const tipoRelay = respuestaRelay.headers.get("content-type") || "";
+  if (!tipoRelay.toLowerCase().includes("application/json")) throw new Error(`Conector regional HTTP ${respuestaRelay.status} sin JSON`);
+  const datosRelay = await respuestaRelay.json();
+  if (!respuestaRelay.ok || !Array.isArray(datosRelay.positions)) throw new Error(datosRelay.error || `Conector regional HTTP ${respuestaRelay.status}`);
+  return datosRelay.positions;
 }
 
 function consultaCanonica(parametros) {
