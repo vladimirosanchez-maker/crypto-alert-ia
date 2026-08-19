@@ -28,7 +28,7 @@ Este Worker permite que la interfaz alojada en GitHub Pages consulte posiciones 
 
 4. Copia la URL `https://...workers.dev` resultante en `js/runtime-config.js`.
 
-5. Si GitHub Pages utiliza un dominio personalizado, reemplázalo en `ALLOWED_ORIGINS` dentro de `wrangler.toml` y vuelve a desplegar.
+5. Si GitHub Pages utiliza un dominio personalizado, reemplázalo en `ALLOWED_ORIGINS` dentro de `wrangler.jsonc` y vuelve a desplegar.
 
 ## Seguridad
 

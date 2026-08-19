@@ -1,0 +1,14 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "crypto-alert-positions",
+  "main": "src/index.js",
+  "compatibility_date": "2026-08-18",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+  "vars": {
+    "ALLOWED_ORIGINS": "https://vladimirosanchez-maker.github.io,http://localhost:8000,http://127.0.0.1:8000"
+  }
+}

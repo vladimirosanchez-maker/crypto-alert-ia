@@ -1,6 +1,0 @@
-name = "crypto-alert-positions"
-main = "src/index.js"
-compatibility_date = "2026-08-18"
-
-[vars]
-ALLOWED_ORIGINS = "https://vladimirosanchez-maker.github.io,http://localhost:8000,http://127.0.0.1:8000"
