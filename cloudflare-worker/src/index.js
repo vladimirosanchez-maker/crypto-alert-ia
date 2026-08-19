@@ -40,6 +40,16 @@ function porcentajePnl(pnl, margen) {
 }
 
 async function solicitarBinance(env) {
+  if (env.BINANCE_RELAY_URL && env.DASHBOARD_TOKEN) {
+    const respuestaRelay = await fetch(`${String(env.BINANCE_RELAY_URL).replace(/\/$/, "")}/api/positions`, {
+      headers: { authorization: `Bearer ${env.DASHBOARD_TOKEN}`, accept: "application/json" }
+    });
+    const tipoRelay = respuestaRelay.headers.get("content-type") || "";
+    if (!tipoRelay.toLowerCase().includes("application/json")) throw new Error(`Conector regional HTTP ${respuestaRelay.status} sin JSON`);
+    const datosRelay = await respuestaRelay.json();
+    if (!respuestaRelay.ok || !Array.isArray(datosRelay.positions)) throw new Error(datosRelay.error || `Conector regional HTTP ${respuestaRelay.status}`);
+    return datosRelay.positions;
+  }
   if (!env.BINANCE_API_KEY || !env.BINANCE_SECRET_KEY) throw new Error("Credenciales Binance no configuradas");
   const consulta = `recvWindow=5000&timestamp=${Date.now()}`;
   const firma = await firmarHmac(env.BINANCE_SECRET_KEY, consulta);

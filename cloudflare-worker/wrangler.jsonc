@@ -9,6 +9,7 @@
     "head_sampling_rate": 1
   },
   "vars": {
-    "ALLOWED_ORIGINS": "https://vladimirosanchez-maker.github.io,http://localhost:8000,http://127.0.0.1:8000"
+    "ALLOWED_ORIGINS": "https://vladimirosanchez-maker.github.io,http://localhost:8000,http://127.0.0.1:8000",
+    "BINANCE_RELAY_URL": "https://temporary-fleet-krypton-x0acmsu.vercel.app"
   }
 }
