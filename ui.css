@@ -92,7 +92,7 @@
 .cambio-vela.positivo { color: #26a69a; }
 .cambio-vela.negativo { color: #ef5350; }
 .ia-note a { color: #8ab4f8; }
-.analisis-ciclo { padding: 10px 11px; border: 1px solid #3b3423; border-radius: 6px; background: #18150e; }
+.analisis-ciclo { display: none !important; padding: 10px 11px; border: 1px solid #3b3423; border-radius: 6px; background: #18150e; }
 .analisis-ciclo strong { display: block; margin-top: 6px; color: #f0c85c; }
 .analisis-ciclo p { margin: 6px 0 0; color: #c8c0a8; font-size: 10px; line-height: 1.45; }
 .analisis-ciclo small { display: block; margin-top: 7px; color: #837c6a; font-size: 9px; line-height: 1.4; }
@@ -106,7 +106,7 @@
 .marcos-ia [data-marco-ia] { padding: 6px 2px; border: 1px solid #273443; border-radius: 4px; color: #8290a0; text-align: center; font-size: 10px; font-weight: 700; }
 .marcos-ia [data-marco-ia].activo { border-color: #3d68c8; background: #20345d; color: #b9ceff; }
 .marcos-ia small { display: block; margin-top: 7px; color: #718092; font-size: 9px; line-height: 1.35; }
-.metricas-macro { border: 1px solid #3b3423; border-radius: 6px; background: #18150e; }
+.metricas-macro { display: none !important; border: 1px solid #3b3423; border-radius: 6px; background: #18150e; }
 .metricas-macro summary { padding: 12px; color: #f0d47f; cursor: pointer; font-size: 12px; font-weight: 750; line-height: 1.35; }
 .metricas-macro > p { margin: 0; padding: 0 12px 10px; color: #b3aa91; font-size: 10.5px; line-height: 1.55; }
 .metricas-macro .contexto-onchain { margin: 0 10px 10px; padding: 9px; border-left: 3px solid #d7a93e; background: #211d11; color: #ded1a9; font-size: 10.5px; line-height: 1.55; }

@@ -24,21 +24,6 @@ async function consultarVelas(simbolo, intervalo, limite = CONFIG.LIMITE_VELAS) 
   catch (error) { console.error("No fue posible consultar las velas:", error); return []; }
 }
 
-let contextoBitcoinDiario = null;
-let consultaContextoBitcoin = null;
-
-async function consultarContextoBitcoin() {
-  const unaHora = 3600000;
-  if (contextoBitcoinDiario && Date.now() - contextoBitcoinDiario.actualizado < unaHora) return contextoBitcoinDiario.velas;
-  if (consultaContextoBitcoin) return consultaContextoBitcoin;
-  consultaContextoBitcoin = consultarVelas("BTCUSDT", "1d", 1500).then((velas) => {
-    if (velas.length) contextoBitcoinDiario = { actualizado: Date.now(), velas };
-    consultaContextoBitcoin = null;
-    return velas;
-  }).catch((error) => { consultaContextoBitcoin = null; throw error; });
-  return consultaContextoBitcoin;
-}
-
 function milisegundosIntervalo(intervalo) {
   return { "1m": 60000, "3m": 180000, "5m": 300000, "15m": 900000, "30m": 1800000, "1h": 3600000, "2h": 7200000, "4h": 14400000, "6h": 21600000, "8h": 28800000, "12h": 43200000, "1d": 86400000, "3d": 259200000, "1w": 604800000, "1M": 2592000000 }[intervalo];
 }

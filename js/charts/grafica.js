@@ -301,13 +301,6 @@ function actualizarAnalisis(velasFormateadas, datosEMA, datosSQZ, datosRSI) {
   document.getElementById("temporalidadIA").textContent = etiquetaMarco;
   document.getElementById("marcoActivoIA").textContent = etiquetaMarco;
   document.querySelectorAll("[data-marco-ia]").forEach((elemento) => elemento.classList.toggle("activo", elemento.dataset.marcoIa === periodoActual));
-  const relevanciaOnchain = {
-    "1h": "En 1H el on-chain sólo funciona como contexto: precio, volumen y momentum dominan la señal. Sesgo macro: transición con posible rebote, no confirmación alcista.",
-    "4h": "En 4H el on-chain ayuda a valorar agotamiento y riesgo de rebote, pero la estructura y el volumen deben confirmarlo. Sesgo macro: lateral con inclinación alcista contraria.",
-    "1d": "En diaria las señales de capitulación ganan relevancia. El conjunto favorece formación de piso, aunque perder precio realizado mantiene riesgo bajista.",
-    "1w": "En semanal el conjunto sugiere valoración deprimida y zona de acumulación potencial. El sesgo pasa a alcista sólo al recuperar niveles estructurales y sostenerlos."
-  };
-  document.getElementById("contextoOnchainTemporal").textContent = relevanciaOnchain[periodoActual] || "En marcos muy cortos las métricas on-chain son contexto macro y no una señal de entrada.";
   estado.textContent = analisis.estado;
   estado.style.color = analisis.color;
   document.getElementById("explicacionTendencia").textContent = analisis.explicacionTendencia;
