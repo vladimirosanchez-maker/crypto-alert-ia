@@ -54,6 +54,8 @@ const lineaEntradaOperacion = grafica.addLineSeries({ color: "#5ec8ff", lineWidt
 const lineaStopOperacion = grafica.addLineSeries({ color: "#ef5350", lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed, title: "STOP", priceFormat: formatoPrecio, priceLineVisible: false, lastValueVisible: true });
 const lineaTP1Operacion = grafica.addLineSeries({ color: "#48c78e", lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dotted, title: "TP1", priceFormat: formatoPrecio, priceLineVisible: false, lastValueVisible: true });
 const lineaTP2Operacion = grafica.addLineSeries({ color: "#20b77a", lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed, title: "TP2", priceFormat: formatoPrecio, priceLineVisible: false, lastValueVisible: true });
+const lineaSoporteIA = grafica.addLineSeries({ color: "#26a69a", lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Dashed, title: "SOPORTE IA", priceFormat: formatoPrecio, priceLineVisible: false, lastValueVisible: true });
+const lineaResistenciaIA = grafica.addLineSeries({ color: "#ef5350", lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Dashed, title: "RESISTENCIA IA", priceFormat: formatoPrecio, priceLineVisible: false, lastValueVisible: true });
 const volumen = grafica.addHistogramSeries({ priceScaleId: "volume", priceFormat: { type: "volume" } });
 const { graficaADX, histogramaTTM, lineaADX } = crearGraficaADX();
 const { graficaRSI, rsi, senal, limiteInferior, limiteSuperior, lineasBanda } = crearGraficaRSI();
@@ -142,7 +144,7 @@ function iniciarDescargaHistorica(simbolo, periodo) {
 }
 
 function obtenerRangoGuardado() { return WORKSPACE.cargar()?.vistas?.[claveVista()]?.rango || null; }
-function segundosDelPeriodo() { return { "1m": 60, "5m": 300, "15m": 900, "1h": 3600, "4h": 14400, "1d": 86400, "1w": 604800 }[periodoActual]; }
+function segundosDelPeriodo() { return { "1m": 60, "3m": 180, "5m": 300, "15m": 900, "30m": 1800, "1h": 3600, "2h": 7200, "4h": 14400, "6h": 21600, "8h": 28800, "12h": 43200, "1d": 86400, "3d": 259200, "1w": 604800, "1M": 2592000 }[periodoActual]; }
 function normalizarRangoVisible(rango) {
   if (!rango || !ultimoTiempoDisponible) return rango;
   const limiteDerecho = ultimoTiempoDisponible + segundosDelPeriodo() * 3;
@@ -294,7 +296,7 @@ function actualizarAnalisis(velasFormateadas, datosEMA, datosSQZ, datosRSI) {
     temporalidad: periodoActual
   });
   const estado = document.getElementById("estadoIA");
-  const etiquetasMarco = { "1h": "1H", "4h": "4H", "1d": "Diaria", "1w": "Semanal" };
+  const etiquetasMarco = { "1m": "1m", "3m": "3m", "5m": "5m", "15m": "15m", "30m": "30m", "1h": "1H", "2h": "2H", "4h": "4H", "6h": "6H", "8h": "8H", "12h": "12H", "1d": "Diaria", "3d": "3 días", "1w": "Semanal", "1M": "Mensual" };
   const etiquetaMarco = etiquetasMarco[periodoActual] || periodoActual.toUpperCase();
   document.getElementById("temporalidadIA").textContent = etiquetaMarco;
   document.getElementById("marcoActivoIA").textContent = etiquetaMarco;
@@ -338,6 +340,14 @@ function actualizarOperativaIA(velasFormateadas, datosEMA, datosSQZ, datosRSI) {
   actualizarLinea(lineaStopOperacion, resultado.vigente?.stop);
   actualizarLinea(lineaTP1Operacion, resultado.vigente?.tp1);
   actualizarLinea(lineaTP2Operacion, resultado.vigente?.tp2);
+  const actualizarNivelEstructural = (serie, zona) => {
+    if (!zona || !Number.isFinite(zona.central) || !velasFormateadas.length) { serie.setData([]); return; }
+    const desde = velasFormateadas[Math.max(0, velasFormateadas.length - 100)].time;
+    const hasta = velasFormateadas.at(-1).time + segundosDelPeriodo();
+    serie.setData([{ time: desde, value: zona.central }, { time: hasta, value: zona.central }]);
+  };
+  actualizarNivelEstructural(lineaSoporteIA, resultado.zonas?.long);
+  actualizarNivelEstructural(lineaResistenciaIA, resultado.zonas?.short);
 
   const estado = document.getElementById("estadoOperacionIA");
   const resumen = document.getElementById("resumenOperacionIA");
@@ -347,7 +357,7 @@ function actualizarOperativaIA(velasFormateadas, datosEMA, datosSQZ, datosRSI) {
   if (!resultado.habilitado) {
     estado.textContent = "Marco no operativo";
     estado.className = "neutral";
-    resumen.textContent = "Selecciona 15m, 1H, 4H, diaria o semanal para generar señales confirmadas.";
+    resumen.textContent = "Este marco todavía no dispone de datos suficientes para generar señales confirmadas.";
     detalle.hidden = true;
     zonaLong.textContent = "--";
     zonaShort.textContent = "--";
@@ -356,7 +366,7 @@ function actualizarOperativaIA(velasFormateadas, datosEMA, datosSQZ, datosRSI) {
   if (!resultado.zonas) {
     estado.textContent = "Historial insuficiente";
     estado.className = "neutral";
-    resumen.textContent = "Se necesitan al menos 233 velas y una vela cerrada para evaluar la confluencia.";
+    resumen.textContent = "Se requieren 233 velas cerradas (60 en mensual) para evaluar estructura, indicadores y niveles.";
     detalle.hidden = true;
     return;
   }
@@ -365,17 +375,17 @@ function actualizarOperativaIA(velasFormateadas, datosEMA, datosSQZ, datosRSI) {
   const etiquetaLong = document.getElementById("etiquetaZonaLongIA");
   const etiquetaShort = document.getElementById("etiquetaZonaShortIA");
   if (estadoOportunidad === "LONG") {
-    estado.textContent = resultado.oportunidad.setupPendiente ? "SETUP LONG en zona" : "ESPERAR RETROCESO LONG";
+    estado.textContent = resultado.oportunidad.setupPendiente ? "SETUP LONG en zona" : resultado.oportunidad.vigilancia.long ? "VIGILAR SOPORTE LONG" : "ESPERAR RETROCESO LONG";
     estado.className = "long";
     resumen.textContent = `Compra probable cerca de ${precioSenal(resultado.zonas.long.central)}; tolerancia ±0,25 ATR. La entrada sólo se confirma con una vela de rechazo cerrada.`;
     etiquetaLong.textContent = "Precio central probable LONG";
     zonaLong.textContent = `${precioSenal(resultado.zonas.long.central)} · zona ${precioSenal(resultado.zonas.long.desde)}–${precioSenal(resultado.zonas.long.hasta)}`;
-    document.getElementById("condicionLongIA").textContent = resultado.oportunidad.setupPendiente ? "Precio dentro del setup: falta flecha de confirmación al cierre." : `Soporte más cercano: ${resultado.zonas.long.origen}, ${resultado.zonas.long.reacciones} reacciones. Esperar retroceso; no comprar arriba.`;
+    document.getElementById("condicionLongIA").textContent = resultado.oportunidad.setupPendiente ? "Precio dentro del setup: falta flecha de confirmación al cierre." : `Soporte más cercano: ${resultado.zonas.long.origen}, ${resultado.zonas.long.reacciones} reacciones; distancia ${resultado.oportunidad.vigilancia.distanciaSoporteATR.toFixed(2)} ATR. Esperar retroceso; no comprar arriba.`;
     etiquetaShort.textContent = "SHORT no permitido";
     zonaShort.textContent = "Contra la tendencia actual";
     document.getElementById("condicionShortIA").textContent = "No vender mientras la estructura permanezca alcista.";
   } else if (estadoOportunidad === "SHORT") {
-    estado.textContent = resultado.oportunidad.setupPendiente ? "SETUP SHORT en zona" : "ESPERAR REBOTE SHORT";
+    estado.textContent = resultado.oportunidad.setupPendiente ? "SETUP SHORT en zona" : resultado.oportunidad.vigilancia.short ? "VIGILAR RESISTENCIA SHORT" : "ESPERAR REBOTE SHORT";
     estado.className = "short";
     resumen.textContent = `Venta probable cerca de ${precioSenal(resultado.zonas.short.central)}; tolerancia ±0,25 ATR. La entrada sólo se confirma con una vela de rechazo cerrada.`;
     etiquetaLong.textContent = "LONG no permitido";
@@ -383,7 +393,19 @@ function actualizarOperativaIA(velasFormateadas, datosEMA, datosSQZ, datosRSI) {
     document.getElementById("condicionLongIA").textContent = "No comprar mientras la estructura permanezca bajista.";
     etiquetaShort.textContent = "Precio central probable SHORT";
     zonaShort.textContent = `${precioSenal(resultado.zonas.short.central)} · zona ${precioSenal(resultado.zonas.short.desde)}–${precioSenal(resultado.zonas.short.hasta)}`;
-    document.getElementById("condicionShortIA").textContent = resultado.oportunidad.setupPendiente ? "Precio dentro del setup: falta flecha de confirmación al cierre." : `Resistencia más cercana: ${resultado.zonas.short.origen}, ${resultado.zonas.short.reacciones} reacciones. Esperar rebote; no vender abajo.`;
+    document.getElementById("condicionShortIA").textContent = resultado.oportunidad.setupPendiente ? "Precio dentro del setup: falta flecha de confirmación al cierre." : `Resistencia más cercana: ${resultado.zonas.short.origen}, ${resultado.zonas.short.reacciones} reacciones; distancia ${resultado.oportunidad.vigilancia.distanciaResistenciaATR.toFixed(2)} ATR. Esperar rebote; no vender abajo.`;
+  } else if (estadoOportunidad === "RANGO") {
+    const setup = resultado.oportunidad.setupPendiente;
+    const vigilancia = resultado.oportunidad.vigilancia;
+    estado.textContent = setup ? `SETUP ${setup.tipo} DE RANGO` : vigilancia.long ? "VIGILAR SOPORTE DEL RANGO" : vigilancia.short ? "VIGILAR RESISTENCIA DEL RANGO" : "ESPERAR EXTREMO DEL RANGO";
+    estado.className = setup?.tipo === "LONG" || vigilancia.long ? "long" : setup?.tipo === "SHORT" || vigilancia.short ? "short" : "neutral";
+    resumen.textContent = `Mercado lateral con ADX ${resultado.oportunidad.adx.toFixed(1)}. Sólo se permite LONG cerca del soporte o SHORT cerca de la resistencia, siempre con rechazo confirmado al cierre.`;
+    etiquetaLong.textContent = "Soporte probable LONG de rango";
+    zonaLong.textContent = `${precioSenal(resultado.zonas.long.central)} · zona ${precioSenal(resultado.zonas.long.desde)}–${precioSenal(resultado.zonas.long.hasta)}`;
+    document.getElementById("condicionLongIA").textContent = `Distancia ${vigilancia.distanciaSoporteATR.toFixed(2)} ATR · ${resultado.zonas.long.origen}, ${resultado.zonas.long.reacciones} reacciones. No entrar en el centro del rango.`;
+    etiquetaShort.textContent = "Resistencia probable SHORT de rango";
+    zonaShort.textContent = `${precioSenal(resultado.zonas.short.central)} · zona ${precioSenal(resultado.zonas.short.desde)}–${precioSenal(resultado.zonas.short.hasta)}`;
+    document.getElementById("condicionShortIA").textContent = `Distancia ${vigilancia.distanciaResistenciaATR.toFixed(2)} ATR · ${resultado.zonas.short.origen}, ${resultado.zonas.short.reacciones} reacciones. No entrar en el centro del rango.`;
   } else {
     estado.textContent = "NO OPERAR";
     estado.className = "no-operar";
@@ -571,6 +593,8 @@ function restablecerEscalasDelActivo() {
 function limpiarSeriesAlCambiarActivo() {
   velas.setData([]); volumen.setData([]); ema10.setData([]); ema55.setData([]); ema200.setData([]);
   histogramaTTM.setData([]); lineaADX.setData([]); rsi.setData([]); senal.setData([]);
+  lineaEntradaOperacion.setData([]); lineaStopOperacion.setData([]); lineaTP1Operacion.setData([]); lineaTP2Operacion.setData([]);
+  lineaSoporteIA.setData([]); lineaResistenciaIA.setData([]);
   valoresCursor.velas.clear(); valoresCursor.sqz.clear(); valoresCursor.adx.clear(); valoresCursor.rsi.clear();
 }
 

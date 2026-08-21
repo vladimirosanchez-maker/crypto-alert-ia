@@ -176,3 +176,8 @@
 .posicion-exchange b { display: block; margin-top: 2px; overflow: hidden; color: #cbd5df; font-family: Consolas, ui-monospace, monospace; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
 .cuentas-exchange > small { display: block; margin-top: 8px; color: #718091; font-size: 8px; }
 .posiciones-vacias { margin: 0; color: #8795a3; font-size: 9px; }
+
+/* Todos los marcos nativos conservan botones legibles mediante desplazamiento horizontal. */
+.toolbar { max-width: 78%; overflow-x: auto; scrollbar-width: thin; }
+.barraTemporalidades { width: max-content; }
+.marcos-ia > div { display: flex; flex-wrap: wrap; gap: 4px; }

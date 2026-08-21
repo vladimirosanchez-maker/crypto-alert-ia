@@ -40,15 +40,14 @@ async function consultarContextoBitcoin() {
 }
 
 function milisegundosIntervalo(intervalo) {
-  return { "1m": 60000, "5m": 300000, "15m": 900000, "1h": 3600000, "4h": 14400000, "1d": 86400000, "1w": 604800000 }[intervalo];
+  return { "1m": 60000, "3m": 180000, "5m": 300000, "15m": 900000, "30m": 1800000, "1h": 3600000, "2h": 7200000, "4h": 14400000, "6h": 21600000, "8h": 28800000, "12h": 43200000, "1d": 86400000, "3d": 259200000, "1w": 604800000, "1M": 2592000000 }[intervalo];
 }
 
 function obtenerInicioContextoAnalisis(intervalo) {
   const intervaloMs = milisegundosIntervalo(intervalo);
-  const duracionCalendario = CONFIG.DIAS_CONTEXTO_ANALISIS * 86400000;
   const duracionIndicadores = CONFIG.VELAS_MINIMAS_ANALISIS * intervaloMs;
-  const diasProyeccion = { "15m": 30, "1h": 60, "4h": 120, "1d": 365, "1w": 730 }[intervalo] || CONFIG.DIAS_CONTEXTO_ANALISIS;
-  return Date.now() - Math.max(duracionCalendario, duracionIndicadores, diasProyeccion * 86400000);
+  const diasProyeccion = { "1m": 3, "3m": 7, "5m": 14, "15m": 30, "30m": 45, "1h": 60, "2h": 90, "4h": 120, "6h": 180, "8h": 240, "12h": 365, "1d": 730, "3d": 1460, "1w": 2555, "1M": 5000 }[intervalo] || CONFIG.DIAS_CONTEXTO_ANALISIS;
+  return Date.now() - Math.max(duracionIndicadores, diasProyeccion * 86400000);
 }
 
 function esperar(milisegundos) {

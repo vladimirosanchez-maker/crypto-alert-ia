@@ -26,7 +26,7 @@ function calcularATR(velas, periodo = 14) {
 }
 
 function obtenerContextoTemporal(velas, temporalidad) {
-  const segundos = { "1m": 60, "5m": 300, "15m": 900, "1h": 3600, "4h": 14400, "1d": 86400, "1w": 604800 }[temporalidad] || 900;
+  const segundos = { "1m": 60, "3m": 180, "5m": 300, "15m": 900, "30m": 1800, "1h": 3600, "2h": 7200, "4h": 14400, "6h": 21600, "8h": 28800, "12h": 43200, "1d": 86400, "3d": 259200, "1w": 604800, "1M": 2592000 }[temporalidad] || 900;
   const velasDosMeses = Math.ceil((CONFIG.DIAS_CONTEXTO_ANALISIS * 86400) / segundos);
   const cantidadObjetivo = Math.max(CONFIG.VELAS_MINIMAS_ANALISIS, velasDosMeses);
   const datos = velas.slice(-cantidadObjetivo);
@@ -35,7 +35,9 @@ function obtenerContextoTemporal(velas, temporalidad) {
 }
 
 function obtenerAnalisisTemporal(velas, indicadores) {
-  const { ema10, ema55, ema200, rsi, sqz, ajustesSQZ, temporalidad = "15m" } = indicadores;
+  const { ema10, ema55, ema200: ema200Cruda, rsi, sqz, ajustesSQZ, temporalidad = "15m" } = indicadores;
+  const tieneEma200 = Number.isFinite(ema200Cruda);
+  const ema200 = tieneEma200 ? ema200Cruda : ema55;
   const ultima = velas.at(-1);
   if (!ultima || ![ema10, ema55, ema200].every(Number.isFinite)) {
     return { estado: "Incertidumbre", color: "#d7a93e", score: 0, probabilidadAlcista: 50, probabilidadBajista: 50, confianza: "Baja", condicion: "Faltan datos para validar un escenario.", modelo: "Confluencia técnica pendiente.", nivelesTecnicos: "Soporte y resistencia: --", explicacionTendencia: "No hay suficientes velas para clasificar la dirección con fiabilidad.", explicacionNiveles: "ATR (Average True Range) mide el recorrido medio y la volatilidad; no predice por sí solo si el precio subirá o bajará.", resumen: "Aún no hay suficientes velas para completar este marco temporal." };
@@ -52,8 +54,8 @@ function obtenerAnalisisTemporal(velas, indicadores) {
 
   if (Math.abs(rendimientoContexto) >= 1) agregar(Math.sign(rendimientoContexto), `contexto de ${contexto.diasCubiertos.toFixed(0)} días ${rendimientoContexto >= 0 ? "sube" : "cae"} ${Math.abs(rendimientoContexto).toFixed(2)}%`);
 
-  const emaAlcista = precioActual > ema10 && ema10 > ema55 && ema55 > ema200;
-  const emaBajista = precioActual < ema10 && ema10 < ema55 && ema55 < ema200;
+  const emaAlcista = precioActual > ema10 && ema10 > ema55 && (!tieneEma200 || ema55 > ema200);
+  const emaBajista = precioActual < ema10 && ema10 < ema55 && (!tieneEma200 || ema55 < ema200);
   if (emaAlcista) agregar(3, "EMA 10/55/200 alineadas al alza");
   else if (emaBajista) agregar(-3, "EMA 10/55/200 alineadas a la baja");
   else {
@@ -114,12 +116,12 @@ function obtenerAnalisisTemporal(velas, indicadores) {
   const score = Math.round(Math.abs(sesgoNormalizado) * 100);
 
   const atr = calcularATR(velas, 14);
-  const horizontes = { "1m": 12, "5m": 12, "15m": 8, "1h": 6, "4h": 4, "1d": 3, "1w": 2 };
+  const horizontes = { "1m": 20, "3m": 16, "5m": 12, "15m": 8, "30m": 8, "1h": 6, "2h": 5, "4h": 4, "6h": 4, "8h": 4, "12h": 3, "1d": 3, "3d": 2, "1w": 2, "1M": 2 };
   const horizonte = horizontes[temporalidad] || 6;
   const recorrido = Number.isFinite(atr) ? atr * Math.sqrt(horizonte) : precioActual * 0.01;
   const objetivoAlcista = precioActual + recorrido;
   const objetivoBajista = Math.max(0, precioActual - recorrido);
-  const ventanasEstructura = { "1h": 48, "4h": 42, "1d": 30, "1w": 20 };
+  const ventanasEstructura = { "1m": 60, "3m": 50, "5m": 48, "15m": 48, "30m": 48, "1h": 48, "2h": 44, "4h": 42, "6h": 40, "8h": 36, "12h": 32, "1d": 30, "3d": 24, "1w": 20, "1M": 12 };
   const bloque = contexto.datos.slice(-(ventanasEstructura[temporalidad] || 40) - 1, -1);
   const resistencia = Math.max(...bloque.map((vela) => vela.high));
   const soporte = Math.min(...bloque.map((vela) => vela.low));
@@ -127,11 +129,11 @@ function obtenerAnalisisTemporal(velas, indicadores) {
   const nivelesTecnicos = `Soporte ${precio(soporte)} · Resistencia ${precio(resistencia)} · Proyección ATR ${precio(objetivoBajista)}–${precio(objetivoAlcista)}`;
   const coberturaDatos = contexto.completo ? `${contexto.diasCubiertos.toFixed(0)} días` : `${contexto.diasCubiertos.toFixed(0)} días (cargando mínimo de ${CONFIG.DIAS_CONTEXTO_ANALISIS})`;
   const modelo = `Contexto ${coberturaDatos} · EMA10 ${precio(ema10)} · EMA55 ${precio(ema55)} · EMA200 ${precio(ema200)} · RSI ${Number.isFinite(valorRSI) ? valorRSI.toFixed(1) : "--"} · ADX ${Number.isFinite(adx) ? adx.toFixed(1) : "--"} · Vol. ${Number.isFinite(volumenRelativo) ? `${volumenRelativo.toFixed(2)}×` : "--"}`;
-  const nombresMarco = { "1h": "1H", "4h": "4H", "1d": "diaria", "1w": "semanal" };
+  const nombresMarco = { "1m": "1 minuto", "3m": "3 minutos", "5m": "5 minutos", "15m": "15 minutos", "30m": "30 minutos", "1h": "1H", "2h": "2H", "4h": "4H", "6h": "6H", "8h": "8H", "12h": "12H", "1d": "diaria", "3d": "3 días", "1w": "semanal", "1M": "mensual" };
   const resumen = `${sesgo > 2 ? "Tendencia alcista" : sesgo < -2 ? "Tendencia bajista" : "Tendencia lateral / transición"} en ${nombresMarco[temporalidad] || temporalidad}: ${razones.slice(0, 4).join("; ")}.`;
   const condicion = `Proyección ATR para las próximas ${horizonte} velas, no precio garantizado. Confirmación alcista sobre ${precio(resistencia)}; confirmación bajista bajo ${precio(soporte)}.`;
   const explicacionTendencia = `La clasificación combina estructura de precio y EMA, momentum RSI/SQZ, dirección DMI, fuerza ADX y confirmación por volumen. El contexto on-chain aporta ${marcosMacro.includes(temporalidad) ? "peso moderado" : "peso reducido"} en este marco; el score mide fuerza de confluencia, no probabilidad de acierto.`;
-  const explicacionNiveles = `Soporte: mínimo relevante de las últimas ${bloque.length} velas. Resistencia: máximo equivalente. ATR es el rango verdadero medio de 14 velas; la banda mostrada estima volatilidad para ${horizonte} velas, no una dirección ni un objetivo garantizado.`;
+  const explicacionNiveles = `Soporte y resistencia combinan pivotes, extremos recientes y EMA dinámicas de las últimas ${bloque.length} velas. ATR es el rango verdadero medio de 14 velas: ajusta zona, stop y distancia máxima aceptable, pero no predice dirección. ${Number.isFinite(ema200Cruda) ? "EMA200 disponible." : "Por historial limitado del marco mensual se utiliza EMA55 como referencia estructural."}`;
   const base = { score, probabilidadAlcista, probabilidadBajista, confianza, condicion, modelo, nivelesTecnicos, explicacionTendencia, explicacionNiveles, resumen };
   if (sesgo > 2) return { ...base, estado: "Alcista", color: "#26a69a" };
   if (sesgo < -2) return { ...base, estado: "Bajista", color: "#ef5350" };

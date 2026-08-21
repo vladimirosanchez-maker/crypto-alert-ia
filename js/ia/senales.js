@@ -1,4 +1,5 @@
-const MARCOS_OPERATIVOS = new Set(["15m", "1h", "4h", "1d", "1w"]);
+const MARCOS_OPERATIVOS = new Set(["1m", "3m", "5m", "15m", "30m", "1h", "2h", "4h", "6h", "8h", "12h", "1d", "3d", "1w", "1M"]);
+const SEGUNDOS_MARCO = Object.freeze({ "1m": 60, "3m": 180, "5m": 300, "15m": 900, "30m": 1800, "1h": 3600, "2h": 7200, "4h": 14400, "6h": 21600, "8h": 28800, "12h": 43200, "1d": 86400, "3d": 259200, "1w": 604800, "1M": 2592000 });
 
 function seriePorTiempo(serie) {
   return new Map(serie.map((punto) => [Number(punto.time), Number(punto.value)]));
@@ -83,7 +84,7 @@ function construirOperacion(tipo, vela, atr, setup, objetivoCercano, objetivoExt
 }
 
 function ventanaMesesTemporalidad(temporalidad) {
-  return { "15m": 30, "1h": 60, "4h": 120, "1d": 365, "1w": 730 }[temporalidad];
+  return { "1m": 3, "3m": 7, "5m": 14, "15m": 30, "30m": 45, "1h": 60, "2h": 90, "4h": 120, "6h": 180, "8h": 240, "12h": 365, "1d": 730, "3d": 1460, "1w": 2555, "1M": 5000 }[temporalidad];
 }
 
 function extremosVentana(velas, indice, temporalidad) {
@@ -105,12 +106,12 @@ function clasificarFactibilidad(puntos, distanciaATR) {
 }
 
 function proyectarExtremos(velas, indice, temporalidad, datos) {
-  const { e10, e55, e200, valorRSI, rsiAnterior, momentum, momentumAnterior, adx, plus, minus, atr, volumenRelativo } = datos;
+  const { e10, e55, e200, tieneEma200, valorRSI, rsiAnterior, momentum, momentumAnterior, adx, plus, minus, atr, volumenRelativo } = datos;
   const vela = velas[indice];
-  const cercano = rangoPrevio(velas, indice, { "15m": 48, "1h": 48, "4h": 42, "1d": 30, "1w": 20 }[temporalidad]);
+  const cercano = rangoPrevio(velas, indice, { "1m": 60, "3m": 50, "5m": 48, "15m": 48, "30m": 48, "1h": 48, "2h": 44, "4h": 42, "6h": 40, "8h": 36, "12h": 32, "1d": 30, "3d": 24, "1w": 20, "1M": 12 }[temporalidad]);
   const extendido = extremosVentana(velas, indice, temporalidad);
-  const tendenciaAlcista = vela.close > e200 && e10 > e55 && e55 > e200;
-  const tendenciaBajista = vela.close < e200 && e10 < e55 && e55 < e200;
+  const tendenciaAlcista = vela.close > e200 && e10 > e55 && (!tieneEma200 || e55 > e200);
+  const tendenciaBajista = vela.close < e200 && e10 < e55 && (!tieneEma200 || e55 < e200);
   const puntosSubida = [tendenciaAlcista, valorRSI > 50, valorRSI >= rsiAnterior, momentum > momentumAnterior, plus > minus, adx >= 20, volumenRelativo >= 1].filter(Boolean).length;
   const puntosCaida = [tendenciaBajista, valorRSI < 50, valorRSI <= rsiAnterior, momentum < momentumAnterior, minus > plus, adx >= 20, volumenRelativo >= 1].filter(Boolean).length;
   const maximoCercano = cercano.maximo > vela.close ? cercano.maximo : NaN;
@@ -129,11 +130,12 @@ function proyectarExtremos(velas, indice, temporalidad, datos) {
 
 function evaluarSenalesOperativas(velas, opciones) {
   const { temporalidad, ema10, ema55, ema200, rsi, sqz, ajustesSQZ } = opciones;
-  if (!MARCOS_OPERATIVOS.has(temporalidad) || velas.length < 233) return { habilitado: false, senales: [], vigente: null, zonas: null };
+  const minimoVelas = temporalidad === "1M" ? 60 : 233;
+  if (!MARCOS_OPERATIVOS.has(temporalidad) || velas.length < minimoVelas) return { habilitado: false, senales: [], vigente: null, zonas: null };
 
-  const segundos = { "15m": 900, "1h": 3600, "4h": 14400, "1d": 86400, "1w": 604800 }[temporalidad];
+  const segundos = SEGUNDOS_MARCO[temporalidad];
   const ultimoCerrado = velas.findLastIndex((vela) => (vela.time + segundos) * 1000 <= Date.now());
-  if (ultimoCerrado < 232) return { habilitado: true, senales: [], vigente: null, zonas: null };
+  if (ultimoCerrado < minimoVelas - 1) return { habilitado: true, senales: [], vigente: null, zonas: null };
 
   const ema10Map = seriePorTiempo(ema10.serie);
   const ema55Map = seriePorTiempo(ema55.serie);
@@ -142,19 +144,22 @@ function evaluarSenalesOperativas(velas, opciones) {
   const momentumMap = seriePorTiempo(sqz.histograma);
   const dmi = calcularDMI(velas, ajustesSQZ.diLength, ajustesSQZ.adxLength);
   const atr = calcularSerieATR(velas, 14);
-  const estructura = { "15m": 20, "1h": 20, "4h": 16, "1d": 14, "1w": 10 }[temporalidad];
-  const enfriamiento = { "15m": 12, "1h": 10, "4h": 8, "1d": 6, "1w": 4 }[temporalidad];
+  const estructura = { "1m": 30, "3m": 26, "5m": 24, "15m": 20, "30m": 20, "1h": 20, "2h": 18, "4h": 16, "6h": 16, "8h": 15, "12h": 14, "1d": 14, "3d": 12, "1w": 10, "1M": 8 }[temporalidad];
+  const enfriamiento = { "1m": 20, "3m": 18, "5m": 16, "15m": 12, "30m": 11, "1h": 10, "2h": 9, "4h": 8, "6h": 8, "8h": 7, "12h": 7, "1d": 6, "3d": 5, "1w": 4, "1M": 3 }[temporalidad];
   const senales = [];
   const setups = [];
   let setupPendiente = null;
   let ultimoIndice = -Infinity;
 
-  for (let indice = 201; indice <= ultimoCerrado; indice += 1) {
+  const inicioEvaluacion = temporalidad === "1M" ? 55 : 201;
+  for (let indice = inicioEvaluacion; indice <= ultimoCerrado; indice += 1) {
     const vela = velas[indice];
     const anterior = velas[indice - 1];
     const e10 = ema10Map.get(vela.time);
     const e55 = ema55Map.get(vela.time);
-    const e200 = ema200Map.get(vela.time);
+    const e200Cruda = ema200Map.get(vela.time);
+    const tieneEma200 = Number.isFinite(e200Cruda);
+    const e200 = tieneEma200 ? e200Cruda : e55;
     const valorRSI = rsiMap.get(vela.time);
     const rsiAnterior = rsiMap.get(anterior.time);
     const momentum = momentumMap.get(vela.time);
@@ -168,8 +173,9 @@ function evaluarSenalesOperativas(velas, opciones) {
     const extremos = extremosVentana(velas, indice, temporalidad);
     if (![e10, e55, e200, valorRSI, momentum, adx, plus, minus, atr[indice]].every(Number.isFinite)) continue;
 
-    const tendenciaAlcista = vela.close > e200 && e10 > e55 && e55 > e200;
-    const tendenciaBajista = vela.close < e200 && e10 < e55 && e55 < e200;
+    const tendenciaAlcista = vela.close > e200 && e10 > e55 && (!tieneEma200 || e55 > e200);
+    const tendenciaBajista = vela.close < e200 && e10 < e55 && (!tieneEma200 || e55 < e200);
+    const mercadoLateral = !tendenciaAlcista && !tendenciaBajista && adx < 20;
     const tolerancia = atr[indice] * 0.35;
     const soporteCercano = nivelEstructuralCercano(velas, indice, anterior.close, atr[indice], [e10, e55, e200], "soporte", estructura * 4);
     const resistenciaCercana = nivelEstructuralCercano(velas, indice, anterior.close, atr[indice], [e10, e55, e200], "resistencia", estructura * 4);
@@ -179,9 +185,12 @@ function evaluarSenalesOperativas(velas, opciones) {
     const posicionRango = (vela.close - rango.minimo) / amplitudRango;
     const precioLongFavorable = posicionRango <= 0.65 && vela.close < rango.maximo - atr[indice] * 0.15;
     const precioShortFavorable = posicionRango >= 0.35 && vela.close > rango.minimo + atr[indice] * 0.15;
-    const setupLong = tendenciaAlcista && tocaZonaLong && precioLongFavorable;
-    const setupShort = tendenciaBajista && tocaZonaShort && precioShortFavorable;
-    if (setupPendiente && (indice > setupPendiente.expira || (setupPendiente.tipo === "LONG" ? !tendenciaAlcista : !tendenciaBajista))) setupPendiente = null;
+    const setupLong = tocaZonaLong && precioLongFavorable && (tendenciaAlcista || (mercadoLateral && posicionRango <= 0.3));
+    const setupShort = tocaZonaShort && precioShortFavorable && (tendenciaBajista || (mercadoLateral && posicionRango >= 0.7));
+    const contextoPendienteVigente = setupPendiente?.modo === "RANGO"
+      ? mercadoLateral
+      : setupPendiente?.tipo === "LONG" ? tendenciaAlcista : tendenciaBajista;
+    if (setupPendiente && (indice > setupPendiente.expira || !contextoPendienteVigente)) setupPendiente = null;
 
     if (setupPendiente && indice > setupPendiente.indice) {
       const esLong = setupPendiente.tipo === "LONG";
@@ -189,15 +198,18 @@ function evaluarSenalesOperativas(velas, opciones) {
       const rsiConfirma = esLong ? valorRSI >= 42 && valorRSI <= 65 && valorRSI > rsiAnterior : valorRSI <= 58 && valorRSI >= 35 && valorRSI < rsiAnterior;
       const sqzConfirma = esLong ? momentum > momentumAnterior : momentum < momentumAnterior;
       const dmiConfirma = esLong ? plus > minus && adx >= 18 : minus > plus && adx >= 18;
+      const contextoConfirma = setupPendiente.modo === "RANGO" ? adx < 22 : esLong ? tendenciaAlcista : tendenciaBajista;
+      const distanciaEntradaATR = Math.abs(vela.close - setupPendiente.precio) / atr[indice];
       const checks = [
-        [esLong ? tendenciaAlcista : tendenciaBajista, `tendencia ${esLong ? "alcista" : "bajista"} conservada`],
+        [contextoConfirma, setupPendiente.modo === "RANGO" ? `rango vigente con ADX ${adx.toFixed(1)}` : `tendencia ${esLong ? "alcista" : "bajista"} conservada`],
         [velaRechazo, `cierre confirma rechazo ${esLong ? "alcista" : "bajista"}`],
         [rsiConfirma, `RSI ${valorRSI.toFixed(1)} confirma giro`],
         [sqzConfirma, `SQZ confirma giro ${esLong ? "al alza" : "a la baja"}`],
-        [dmiConfirma, `DMI alineado con ADX ${adx.toFixed(1)}`],
+        [setupPendiente.modo === "RANGO" ? adx < 22 : dmiConfirma, setupPendiente.modo === "RANGO" ? `ADX bajo valida operación de rango` : `DMI alineado con ADX ${adx.toFixed(1)}`],
+        [distanciaEntradaATR <= 0.8, `cierre a ${distanciaEntradaATR.toFixed(2)} ATR de la zona`],
         [volumenRelativo >= 0.85, `volumen ${volumenRelativo.toFixed(2)}×`]
       ];
-      const confirma = checks.filter(([cumple]) => cumple).length >= 5 && checks[0][0] && checks[1][0];
+      const confirma = checks.filter(([cumple]) => cumple).length >= 6 && checks[0][0] && checks[1][0] && checks[5][0];
       if (confirma && indice - ultimoIndice >= enfriamiento) {
         const objetivoCercano = esLong ? rango.maximo : rango.minimo;
         const objetivoExtendido = esLong ? extremos.maximo : extremos.minimo;
@@ -212,7 +224,7 @@ function evaluarSenalesOperativas(velas, opciones) {
     if (!setupPendiente && indice - ultimoIndice >= enfriamiento && (setupLong || setupShort)) {
       const tipo = setupLong ? "LONG" : "SHORT";
       const nivel = tipo === "LONG" ? soporteCercano : resistenciaCercana;
-      setupPendiente = { tipo, indice, tiempo: vela.time, precio: nivel.precio, nivelOrigen: nivel.origen, reacciones: nivel.reacciones, extremo: tipo === "LONG" ? vela.low : vela.high, minimo: vela.low, maximo: vela.high, expira: indice + 4, atr: atr[indice] };
+      setupPendiente = { tipo, modo: mercadoLateral ? "RANGO" : "TENDENCIA", indice, tiempo: vela.time, precio: nivel.precio, nivelOrigen: nivel.origen, reacciones: nivel.reacciones, extremo: tipo === "LONG" ? vela.low : vela.high, minimo: vela.low, maximo: vela.high, expira: indice + 4, atr: atr[indice] };
     }
   }
 
@@ -222,9 +234,13 @@ function evaluarSenalesOperativas(velas, opciones) {
   const atrActual = atr[indice];
   const e10 = ema10Map.get(ultima.time);
   const e55 = ema55Map.get(ultima.time);
-  const e200 = ema200Map.get(ultima.time);
-  const tendenciaAlcista = ultima.close > e200 && e10 > e55 && e55 > e200;
-  const tendenciaBajista = ultima.close < e200 && e10 < e55 && e55 < e200;
+  const e200Cruda = ema200Map.get(ultima.time);
+  const tieneEma200 = Number.isFinite(e200Cruda);
+  const e200 = tieneEma200 ? e200Cruda : e55;
+  const tendenciaAlcista = ultima.close > e200 && e10 > e55 && (!tieneEma200 || e55 > e200);
+  const tendenciaBajista = ultima.close < e200 && e10 < e55 && (!tieneEma200 || e55 < e200);
+  const adxActual = dmi.adx[indice];
+  const mercadoLateral = !tendenciaAlcista && !tendenciaBajista && adxActual < 20;
   const soporteActual = nivelEstructuralCercano(velas, indice, ultima.close, atrActual, [e10, e55, e200], "soporte", estructura * 4) || { precio: rango.minimo, origen: "mínimo reciente", reacciones: 1 };
   const resistenciaActual = nivelEstructuralCercano(velas, indice, ultima.close, atrActual, [e10, e55, e200], "resistencia", estructura * 4) || { precio: rango.maximo, origen: "máximo reciente", reacciones: 1 };
   const zonaLong = Number.isFinite(atrActual) ? { central: soporteActual.precio, desde: soporteActual.precio - atrActual * 0.25, hasta: soporteActual.precio + atrActual * 0.25, origen: soporteActual.origen, reacciones: soporteActual.reacciones } : null;
@@ -234,13 +250,20 @@ function evaluarSenalesOperativas(velas, opciones) {
   const momentum = momentumMap.get(ultima.time);
   const momentumAnterior = momentumMap.get(velas[indice - 1].time);
   const volumenMedio = promedioVolumen(velas, indice);
-  const proyeccion = proyectarExtremos(velas, indice, temporalidad, { e10, e55, e200, valorRSI, rsiAnterior, momentum, momentumAnterior, adx: dmi.adx[indice], plus: dmi.plusDI[indice], minus: dmi.minusDI[indice], atr: atrActual, volumenRelativo: ultima.volume / volumenMedio });
+  const proyeccion = proyectarExtremos(velas, indice, temporalidad, { e10, e55, e200, tieneEma200, valorRSI, rsiAnterior, momentum, momentumAnterior, adx: dmi.adx[indice], plus: dmi.plusDI[indice], minus: dmi.minusDI[indice], atr: atrActual, volumenRelativo: ultima.volume / volumenMedio });
   const ultimaSenal = senales.at(-1);
   const vigente = ultimaSenal && indice - ultimaSenal.indice <= 2 ? ultimaSenal : null;
-  const estadoMercado = tendenciaAlcista ? "LONG" : tendenciaBajista ? "SHORT" : "NO_OPERAR";
+  const estadoMercado = tendenciaAlcista ? "LONG" : tendenciaBajista ? "SHORT" : mercadoLateral ? "RANGO" : "NO_OPERAR";
   const activacion = { long: Math.max(e10, e55, e200), short: Math.min(e10, e55, e200) };
+  const distanciaSoporteATR = (ultima.close - soporteActual.precio) / atrActual;
+  const distanciaResistenciaATR = (resistenciaActual.precio - ultima.close) / atrActual;
+  const vigilancia = {
+    long: distanciaSoporteATR >= 0 && distanciaSoporteATR <= 0.8 && (tendenciaAlcista || mercadoLateral),
+    short: distanciaResistenciaATR >= 0 && distanciaResistenciaATR <= 0.8 && (tendenciaBajista || mercadoLateral),
+    distanciaSoporteATR, distanciaResistenciaATR
+  };
   if (setupPendiente) setups.push(setupPendiente);
-  return { habilitado: true, senales, setups, vigente, proyeccion, oportunidad: { estado: estadoMercado, activacion, setupPendiente }, zonas: { long: zonaLong, short: zonaShort, cierre: ultima.close, marco: temporalidad } };
+  return { habilitado: true, senales, setups, vigente, proyeccion, oportunidad: { estado: estadoMercado, activacion, setupPendiente, vigilancia, adx: adxActual }, zonas: { long: zonaLong, short: zonaShort, cierre: ultima.close, marco: temporalidad, atr: atrActual } };
 }
 
 function crearMarcadoresOperativos(resultado) {
